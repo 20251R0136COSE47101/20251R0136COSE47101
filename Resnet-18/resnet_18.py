@@ -119,6 +119,18 @@ class ResNet(nn.Module):
       model = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=1, out_channels = 196)
       return model
 
+    def ResNet50_FPF_Features():
+      #Input: (B, 1, 512, 196)
+      #Output: (B, 196, 14, 14)
+      model = ResNet(Bottleneck, [3, 4, 6, 3], in_channels=1, out_channels = 196)
+      return model
+
+    def ResNet101_FPF_Features():
+      #Input: (B, 1, 512, 196)
+      #Output: (B, 196, 14, 14)
+      model = ResNet(Bottleneck, [3, 4, 23, 3], in_channels=1, out_channels = 196)
+      return model
+
     def ResNet18():
       return ResNet(BasicBlock, [2, 2, 2, 2])
 
@@ -149,6 +161,24 @@ print("\n""\n")
 
 print("--- FPF Features Test ---")
 fpf_model = ResNet.ResNet18_FPF_Features()
+dummy_fpf_input_2d = torch.randn(1, 1, 512, 196) # 데이터 1개
+print(f"Dummy FPF Input Shape: {dummy_fpf_input_2d.shape}")
+fpf_output = fpf_model(dummy_fpf_input_2d)
+print(f"FPF Output Shape: {fpf_output.shape}") # torch.Size([1, 196, 14, 14])
+
+print("\n""\n")
+
+print("--- FPF Features Test ---")
+fpf_model = ResNet.ResNet50_FPF_Features()
+dummy_fpf_input_2d = torch.randn(1, 1, 512, 196) # 데이터 1개
+print(f"Dummy FPF Input Shape: {dummy_fpf_input_2d.shape}")
+fpf_output = fpf_model(dummy_fpf_input_2d)
+print(f"FPF Output Shape: {fpf_output.shape}") # torch.Size([1, 196, 14, 14])
+
+print("\n""\n")
+
+print("--- FPF Features Test ---")
+fpf_model = ResNet.ResNet101_FPF_Features()
 dummy_fpf_input_2d = torch.randn(1, 1, 512, 196) # 데이터 1개
 print(f"Dummy FPF Input Shape: {dummy_fpf_input_2d.shape}")
 fpf_output = fpf_model(dummy_fpf_input_2d)
