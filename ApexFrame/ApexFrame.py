@@ -315,6 +315,37 @@ def running(dataPath, resPath, type = 'CASMEII'):
             saveData(os.path.join(MEResPath, 'OF.txt'), OF, startIdx)
             saveData(os.path.join(MEResPath, 'OS.txt'), OS, startIdx)
 
+    else:
+        testPath = dataPath + '/Test/Test'
+        labelList = os.listdir(testPath)
+        for label in labelList: # Lie, Truth
+            personPath = testPath + '/' + label
+            personList = os.listdir(personPath)
+            for p in personList:
+                subjectPath = personPath + '/' + p
+                subjectList = os.listdir(subjectPath)
+                if not os.path.isdir(subjectPath):
+                    continue
+
+                MEList = os.listdir(subjectPath)
+                for ME in MEList: # traverse all Micro-Expression sequences of the subject
+                    print('Calculating OF/OS in ' + subject + '/' + ME)
+                    MEPath = subjectPath + '/' + ME
+                    '''
+                    MEResPath = subResPath + '/' + ME
+                    if os.path.exists(MEResPath): continue
+                    if not os.path.exists(MEResPath):
+                        os.makedirs(MEResPath)
+                    '''
+                    startIdx, imgs = loadImages(MEPath, type)
+                    
+                    OS, OF = extractFeature(imgs, 0.2, type)
+                    # drawPic(OF, MEResPath, 'Flow', startIdx, 0)
+                    # drawPic(OS, MEResPath, 'Strain', startIdx, 0)
+                    saveData('OF.txt', OF, startIdx)
+                    saveData('OS.txt', OS, startIdx)
+
+
 def tmpRun(filePath):
     with open(filePath, 'r') as paths:
         pathList = paths.readlines()
@@ -330,7 +361,8 @@ def tmpRun(filePath):
             saveData(os.path.join(MEResPath, 'OS.txt'), OS, startIdx)
 
 if __name__ == '__main__':
-    running('../../dataset/CASME2/CASME2_RAW_selected', '../resultCASMEII', 'CASMEII')
+    running('../dataset', '../results', 'CUSTOM')
+    # running('../../dataset/CASME2/CASME2_RAW_selected', '../resultCASMEII', 'CASMEII')
     # running('../../dataset/SAMM/SAMM', '../resultSAMM', 'SAMM')
     # running('../../dataset/SMIC/SMIC-E_raw image/HS_long/SMIC-HS-E', '../resultSMIC_HS_E', 'SMIC')
     # tmpRun('namelist.txt')
