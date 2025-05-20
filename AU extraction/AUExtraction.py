@@ -10,7 +10,7 @@ for filename in os.listdir(input_dir):
         input_path = os.path.join(input_dir, filename)
         output_path = os.path.join(output_dir, filename.replace(".jpg", ".csv").replace(".png", ".csv"))
         libreface.get_facial_attributes(
-            image_or_video_path=input_path,
+            file_path=input_path,
             output_save_path=output_path,
             device="cuda:0"  # GPU 사용 (없으면 "cpu")
         )
