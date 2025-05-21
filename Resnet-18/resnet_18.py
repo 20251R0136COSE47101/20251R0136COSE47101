@@ -10,6 +10,7 @@ Original file is located at
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 from torchvision import transforms 
 from PIL import Image 
 import os 
@@ -156,7 +157,7 @@ class ResNet(nn.Module):
 
 
     
-def preprocess_image(image_path, image_size=(224, 224)):
+def preprocess_image(image_path, image_size=(560, 560)):
     try:
         img = Image.open(image_path).convert('RGB') 
 
@@ -182,12 +183,58 @@ def preprocess_image(image_path, image_size=(224, 224)):
         return None
     
 
+def preprocess_vertical_image(apex_image_path, onset_image_path, image_size=(224, 224)):    
+    try:
+        img_apex_pil = Image.open(apex_image_path).convert('RGB')
+        img_onset_pil = Image.open(onset_image_path).convert('RGB')
 
-ver_input = preprocess_image("이미지 경로")
+        to_tensor_transform = transforms.Compose([
+            transforms.Resize(image_size),
+            transforms.ToTensor()  # [0, 1] 범위의 (C, H, W) 텐서로 변환
+        ])
+
+        normalize_transform = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                   std=[0.229, 0.224, 0.225])
+        
+        img_apex_tensor = to_tensor_transform(img_apex_pil)
+        normalized_apex_tensor = normalize_transform(img_apex_tensor)
+
+        img_onset_tensor = to_tensor_transform(img_onset_pil)
+        normalized_onset_tensor = normalize_transform(img_onset_tensor)
+
+        difference_tensor = normalized_apex_tensor - normalized_onset_tensor
+        
+        normalized_difference_tensor = normalize_transform(difference_tensor)
+
+        batch_tensor = normalized_difference_tensor.unsqueeze(0) # (C, H, W) -> (1, C, H, W)
+
+        return batch_tensor
+
+    except FileNotFoundError as e:
+        print(f"Error: Image file not found. Apex: {apex_image_path}, Onset: {onset_image_path}. Details: {e}")
+        return None
+    except Exception as e:
+        print(f"Error processing difference image. Apex: {apex_image_path}, Onset: {onset_image_path}. Details: {e}")
+        return None
+
+
+# apex frame 경로를 뽑아 apex, oneset 이미지 경로를 둘 다 넣으면 프레임 단위로 apex-oneset한 데이터를 resnet 돌린게 vertical_output에 1 512 14 14 로 나옴
+ver_input = preprocess_vertical_image("apex 이미지 경로", "oneset 이미지 경로")
 vertical_model = ResNet.ResNet18_Vertical_Features()
 vertical_output = vertical_model(ver_input)
 
 
-fpf_input = preprocess_image("이미지 경로")
-fpf_model = ResNet.ResNet18_Vertical_Features()
-fpf_output = fpf_model(fpf_input)
+#이미지 경로를 넣으면 resnet 돌린 data가 FPF_output에 1 196 14 14 로 나옴. 각각 fpf_apex(oneset)_output으로 나오고, 이를 elementwise로 해준 최종 결과가 fpf_output
+fpf_apex_input = preprocess_image("apex 이미지 경로")
+fpf_onset_input = preprocess_image("onset 이미지 경로")
+
+fpf_model = ResNet.ResNet50_FPF_Features()
+
+fpf_apex_output = fpf_model(fpf_apex_input)
+fpf_onset_output = fpf_model(fpf_onset_input)
+
+fpf_output = fpf_apex_output + fpf_onset_output
+
+
+real_output = np.concat(vertical_output,fpf_output) #classification
+
