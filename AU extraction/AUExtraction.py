@@ -1,8 +1,8 @@
 import os
 import libreface
 
-input_dir = ""      # apex frame folder route
-output_dir = ""      # .csv output directory
+input_dir = "C:/Users/Juna/20251R0136COSE47101/Test"      # apex frame folder route
+output_dir = "C:/Users/Juna/20251R0136COSE47101/Test"      # .csv output directory
 os.makedirs(output_dir, exist_ok=True)
 
 for filename in os.listdir(input_dir):
