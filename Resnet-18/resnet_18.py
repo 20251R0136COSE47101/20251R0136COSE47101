@@ -149,39 +149,42 @@ class ResNet(nn.Module):
 
     def ResNet152():
       return ResNet(Bottleneck, [3, 8, 36, 3])
+    
 
-#test
 
-print("--- Vertical Features Test ---")
+    
+def preprocess_image(image_path, image_size=(224, 224)):
+    try:
+        img = Image.open(image_path).convert('RGB') 
+
+        preprocess_transform = transforms.Compose([
+            transforms.Resize(image_size),  #이미지 사이즈 224 224 로 크기 조절
+            transforms.ToTensor(),  #텐서
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],  #정규화
+                                 std=[0.229, 0.224, 0.225])
+        ])
+
+        img_tensor = preprocess_transform(img)
+
+        
+        img_tensor = img_tensor.unsqueeze(0) # (C, H, W) -> (1, C, H, W)
+
+        return img_tensor
+
+    except FileNotFoundError:
+        print(f"Error: Image file not found at {image_path}")
+        return None
+    except Exception as e:
+        print(f"Error processing image {image_path}: {e}")
+        return None
+    
+
+
+ver_input = preprocess_image("이미지 경로")
 vertical_model = ResNet.ResNet18_Vertical_Features()
-dummy_vertical_input = torch.randn(1, 3, 224, 224) # 데이터 1개
-print(f"Dummy Vertical Input Shape: {dummy_vertical_input.shape}")
-vertical_output = vertical_model(dummy_vertical_input)
-print(f"Vertical Output Shape: {vertical_output.shape}") # torch.Size([1, 512, 14, 14])
+vertical_output = vertical_model(ver_input)
 
-print("\n""\n")
 
-print("--- FPF Features Test ---")
-fpf_model = ResNet.ResNet18_FPF_Features()
-dummy_fpf_input_2d = torch.randn(1, 3, 244, 244) # 데이터 1개
-print(f"Dummy FPF Input Shape: {dummy_fpf_input_2d.shape}")
-fpf_output = fpf_model(dummy_fpf_input_2d)
-print(f"FPF Output Shape: {fpf_output.shape}") # torch.Size([1, 196, 14, 14])
-
-print("\n""\n")
-
-print("--- FPF Features Test ---")
-fpf_model = ResNet.ResNet50_FPF_Features()
-dummy_fpf_input_2d = torch.randn(1, 3, 244, 244) # 데이터 1개
-print(f"Dummy FPF Input Shape: {dummy_fpf_input_2d.shape}")
-fpf_output = fpf_model(dummy_fpf_input_2d)
-print(f"FPF Output Shape: {fpf_output.shape}") # torch.Size([1, 196, 14, 14])
-
-print("\n""\n")
-
-print("--- FPF Features Test ---")
-fpf_model = ResNet.ResNet101_FPF_Features()
-dummy_fpf_input_2d = torch.randn(1, 3, 244, 244) # 데이터 1개
-print(f"Dummy FPF Input Shape: {dummy_fpf_input_2d.shape}")
-fpf_output = fpf_model(dummy_fpf_input_2d)
-print(f"FPF Output Shape: {fpf_output.shape}") # torch.Size([1, 196, 14, 14])
+fpf_input = preprocess_image("이미지 경로")
+fpf_model = ResNet.ResNet18_Vertical_Features()
+fpf_output = fpf_model(fpf_input)
