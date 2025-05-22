@@ -8,30 +8,34 @@ import matplotlib.pyplot as plt
 
 
 class BinaryClassificationDataset(Dataset):
-    def __init__(self, num_samples=1000, input_dim=68, random_seed=42):
+    def __init__(self, num_samples=1000, Feature_dim = 708*14*14, AU_dim = 1, random_seed=42):
         # 재현성을 위한 시드 설정
         np.random.seed(random_seed)
         torch.manual_seed(random_seed)
         
         # 무작위 데이터 생성
-        self.X = torch.randn(num_samples, input_dim)
+        self.Feature = torch.randn(num_samples, 708, 14, 14)
+        self.AU = torch.randint(0, 2, (num_samples, AU_dim)).float()
         
         # 단순한 규칙 기반 레이블 생성 (첫 번째 값이 0보다 크면 1, 아니면 0)
         self.y = torch.zeros(num_samples)
-        self.y[self.X[:, 0] > 0] = 1
-        self.y = self.y.long()
+        self.y = (self.Feature[:, 0, 0, 0] > 0).long()
         
     def __len__(self):
-        return len(self.X)
+        return len(self.Feature)
     
     def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
+        feature_flat = self.Feature[idx].flatten()
+        concated = torch.cat([feature_flat, self.AU[idx]], dim=0)
+        return self.concated[idx], self.y[idx]
 
 # 이진 분류 모델 정의
 class BinaryClassifier(nn.Module):
-    def __init__(self, input_dim=68, hidden_dim=64):
+    def __init__(self, Feature_dim = 708*14*14, AU_dim = None, hidden_dim=256):
         super(BinaryClassifier, self).__init__()
-        self.layer1 = nn.Linear(input_dim, hidden_dim)
+        self.flatten = nn.Flatten()
+        concat_dim = Feature_dim + AU_dim # 138,768 + AU
+        self.layer1 = nn.Linear(concat_dim, hidden_dim)
         self.layer2 = nn.Linear(hidden_dim, hidden_dim // 2)
         self.layer3 = nn.Linear(hidden_dim // 2, 1)
         self.relu = nn.ReLU()
@@ -45,6 +49,9 @@ class BinaryClassifier(nn.Module):
         x = self.dropout(x)
         x = self.layer3(x)
         x = self.sigmoid(x)
+        print(x.shape)
+        print(x)
+        print(x.squeeze())
         return x.squeeze()
 
 def train_model():
@@ -60,7 +67,7 @@ def train_model():
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size)
     
     
-    model = BinaryClassifier(input_dim=68, hidden_dim=args.hidden_dim)
+    model = BinaryClassifier(Feature_dim = 708*14*14, AU_dim = None, hidden_dim=args.hidden_dim)
     # model.to(device)
     Loss = {"BCELoss": nn.BCELoss(), "CrossEntropyLoss": nn.CrossEntropyLoss()}
     criterion = Loss[args.Loss]
