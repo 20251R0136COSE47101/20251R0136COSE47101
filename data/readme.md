@@ -1,11 +1,19 @@
 data:
+
 ├─apex_output
+
 ├─AU_output
+
 ├─onset_output
+
 ├─dataset
+
 │  ├─test
+
 │  └─train
+
 └─label
+
 
 위 구조대로 apex, au, onset이 저장되도록 하기.
 dataset/train, dataset/test를 통해 각 frame을 찾아내어 저장.
