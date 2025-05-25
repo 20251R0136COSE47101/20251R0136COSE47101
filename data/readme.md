@@ -7,6 +7,8 @@ data:
 │  └─train
 └─label
 
+이거 수정하기 누르고 보면 tree구조 제대로 보임
+
 위 구조대로 apex, au, onset이 저장되도록 하기.
 dataset/train, dataset/test를 통해 각 frame을 찾아내어 저장.
 각 사진들이 순서대로 들어와야하니, 저장시에 순서가 바뀌지 않게, 이름 같게 저장되게 해주세요.
