@@ -42,6 +42,7 @@ if __name__ == "__main__":
     
     #2 preprocess
     if args.do_preprocess == 1:
+        # 경로에 있는거 지우고 하나요? 
         preprocessed_train = preprocess(dataset_train, dataset_test, onset_output, apex_output, AU_output)
     # else: do nothing
     

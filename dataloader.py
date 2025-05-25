@@ -49,7 +49,7 @@ class LieDetectionDataset(Dataset):
         # AU csv 파일에서 두 번째 행(실제 값)만 추출
         au_df = pd.read_csv(au_csv_path)
         au_vector = au_df.iloc[0].values.astype('float32')  # 첫 번째 데이터 행
-        au = torch.tensor(au_vector, dtype=torch.float) # 12개의 텐서(AU개수)
+        au = torch.tensor(au_vector, dtype=torch.float) # 12개의 텐서(AU개수) (1, 12) shape으로 만들어야함. 나중에 concat시 필요
 
         # label
         label = self.labels[sample_name]
