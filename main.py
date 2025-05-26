@@ -8,6 +8,8 @@ from train import Trainer
 from model import Model
 from dataloader import DataLoader
 
+from Resnet_18 import resnet_18
+
 #쓸까말까. transfer learning할거면 넣는게 좋을듯
 MEAN_RGB = (0.485, 0.456, 0.406)
 VAR_RGB = (0.229, 0.224, 0.225)
@@ -47,8 +49,8 @@ if __name__ == "__main__":
     # else: do nothing
     
     #3 Feature extraction & classification
-    fpf_model = ResNet.ResNet50_FPF_Features()
-    vertical_model = ResNet.ResNet18_Vertical_Features()
+    fpf_model = resnet_18.ResNet.ResNet50_FPF_Features()
+    vertical_model = resnet_18.ResNet.ResNet18_Vertical_Features()
     classification_model = MLP_model()
     
     if args.mode == "train_and_test":
