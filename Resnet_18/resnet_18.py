@@ -69,11 +69,48 @@ class Bottleneck(nn.Module):
         out = F.relu(out)
         return out
 
+class CVABlock(nn.Module):
+    def __init__(self, channels, reduction_factor=32): 
+        super(CVABlock, self).__init__()
+        self.channels = channels
+        reduced_channels = max(8, channels // reduction_factor) # max{8, C/32}
+        self.fc_reduce = nn.Conv2d(channels, reduced_channels, kernel_size=1, bias=False) # F: 1*1 conv
+        self.bn_reduce = nn.BatchNorm2d(reduced_channels) # F : batch Norm
+        self.activation = nn.ReLU(inplace=True) 
+        self.fc_restore = nn.Conv2d(reduced_channels, channels, kernel_size=1, bias=False) # F : 1*1 conv
+        self.sigmoid = nn.Sigmoid() # F : sigmoid
+
+
+        self.conv_prev_attn = nn.Conv2d(channels, channels, kernel_size=1, bias=False) # attn : 1*1 conv
+        
+
+    def forward(self, F_conv, prev_Attn_Y=None):
+        
+        out = F_conv.mean(dim=3, keepdim=True) # F : Y avg pool
+        out = self.fc_reduce(out) # F : Conv 1*1
+        out = self.bn_reduce(out) # F : Batch Norm
+        out = self.activation(out)
+        out = self.fc_restore(out) # F : Conv 1*1
+        branch1_weights = self.sigmoid(out) # F : sigmoid
+
+        if prev_Attn_Y is not None:
+            pooled_prev_attn = F.adaptive_max_pool2d(prev_Attn_Y, (1,1)) # max pool
+            branch2_weights = self.conv_prev_attn(pooled_prev_attn) # Conv 1*1
+            current_Attn_Y = branch1_weights * branch2_weights
+        else: #첫 attention
+            current_Attn_Y = branch1_weights
+        
+        reweighted_F_conv = F_conv * current_Attn_Y.expand_as(F_conv) # W 차원으로 확장
+
+        return reweighted_F_conv, current_Attn_Y 
+
+   
 class ResNet(nn.Module):
-    def __init__(self, block, num_blocks, in_channels = 3, out_channels = None):
+    def __init__(self, block, num_blocks, in_channels = 3, out_channels = None, use_cva=False):
         super(ResNet, self).__init__()
         self.in_planes = 64
         self.out_channels = out_channels
+        self.use_cva = use_cva
 
         self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
@@ -87,6 +124,11 @@ class ResNet(nn.Module):
             self.adjust_channels_bn = nn.BatchNorm2d(self.out_channels)
         else:
             self.adjust_channels_conv = None
+
+        if self.use_cva:
+            self.cva_block = nn.ModuleList([CVABlock(512 * block.expansion) for _ in range(4)])
+        else :
+            self.cva_block = None
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)
@@ -106,6 +148,14 @@ class ResNet(nn.Module):
 
         out = F.adaptive_avg_pool2d(out, (14, 14))
 
+        if self.use_cva and self.cva_block is not None: # 일단 최종 resnet으로 뽑은 feature를 cva_module 4번 돌리도록 구현. 만약 layer 거칠 때마다 하는게 효율이 좋다면 수정 필요.
+            cva_attn = None
+            current_feature = out
+            for cva_layer in self.cva_block:
+                _ , cva_attn = cva_layer(current_feature, cva_attn) # 논문 상, feature는 유지하고 최종 attention 뽑은 것만 feature와 합치는 것 같아 일단 해당 방식으로 구현
+            out = current_feature * cva_attn.expand_as(current_feature) 
+
+
         if self.adjust_channels_conv is not None:
           out = F.relu(self.adjust_channels_bn(self.adjust_channels_conv(out)))
 
@@ -114,7 +164,7 @@ class ResNet(nn.Module):
     def ResNet18_Vertical_Features():
       #Input: (B, 3, 224, 224)
       #Output: (B, 512, 14, 14)
-      model = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=3)
+      model = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=3, use_cva = True)
       return model
 
     def ResNet18_FPF_Features():
@@ -219,7 +269,7 @@ def preprocess_vertical_image(apex_image_path, onset_image_path, image_size=(224
 
 
 # apex frame 경로를 뽑아 apex, oneset 이미지 경로를 둘 다 넣으면 프레임 단위로 apex-oneset한 데이터를 resnet 돌린게 vertical_output에 1 512 14 14 로 나옴
-ver_input = preprocess_vertical_image("apex 이미지 경로", "oneset 이미지 경로")
+ver_input = preprocess_vertical_image("apex 이미지 경로","onset 이미지 경로")
 vertical_model = ResNet.ResNet18_Vertical_Features()
 vertical_output = vertical_model(ver_input)
 
