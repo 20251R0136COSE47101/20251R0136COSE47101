@@ -6,6 +6,7 @@
 
 예시: from AU_extraction.AUExtraction import ~~ or import AU_extraction.AUExtraction
 """
+from Mediapipe_test.ApexFrame_yoonheon import find_onset_apex_frames
 from AU.AUExtraction import extract_au
 
 
@@ -17,12 +18,17 @@ def preprocess(dataset_train="data/dataset/train", dataset_test="data/dataset/te
         #0. input이 영상이면 여기서 자르기
         
         #1. onset frame저장
-        onset_frame = 각 영상자른 데이터셋 폴더에서 onset찾기
-        do save onset_frames of dataset_train
+        #onset_frame = 각 영상자른 데이터셋 폴더에서 onset찾기
+        #do save onset_frames of dataset_train
         
         #2. apex를 추출해서 apex_output_dir에 저장.
-        apex_frame = apex를 뽑아내는 함수
-        do save apex_frames of dataset_train
+        #apex_frame = apex를 뽑아내는 함수
+        #do save apex_frames of dataset_train
+
+        #1. & #2. onset frame과 apex frame이 한꺼번에 뽑혀서
+        extract_frame = find_onset_apex_frames
+        extract_frame(dataset_train)
+        #아직 미완성. onset/apex output directory도 넘겨야 하는데 일단 원본 함수부터 수정하고
         
         #3. AU를 추출해서 AU_output_dir에 저장.
         AU = extract_au
@@ -36,12 +42,16 @@ def preprocess(dataset_train="data/dataset/train", dataset_test="data/dataset/te
         #0. input이 영상이면 여기서 자르기
         
         #1. onset frame저장
-        onset_frame = 각 영상자른 데이터셋 폴더에서 onset찾기
-        do save onset_frames of dataset_train
+        #onset_frame = 각 영상자른 데이터셋 폴더에서 onset찾기
+        #do save onset_frames of dataset_train
         
         #2. apex를 추출해서 apex_output_dir에 저장.
-        apex_frame = apex를 뽑아내는 함수
-        do save apex_frames of dataset_train
+        #apex_frame = apex를 뽑아내는 함수
+        #do save apex_frames of dataset_train
+
+        #1. & #2. onset frame과 apex frame이 한꺼번에 뽑혀서
+        extract_frame = find_onset_apex_frames
+        extract_frame(dataset_train)
         
         #3. AU를 추출해서 AU_output_dir에 저장.
         AU = extract_au
