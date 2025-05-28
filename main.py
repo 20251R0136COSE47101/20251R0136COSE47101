@@ -9,7 +9,6 @@ from model import Model
 from dataloader import DataLoader
 
 from Resnet_18 import resnet_18
-from torchvision.transforms import transforms
 
 #쓸까말까. transfer learning할거면 넣는게 좋을듯
 MEAN_RGB = (0.485, 0.456, 0.406)
