@@ -167,6 +167,16 @@ class Trainer:
         plt.ylabel('Actual')
         plt.xlabel('Predicted')
         plt.show()
+        
+    def plot_roc_curve(fpr, tpr, auc, title='ROC Curve'):
+        plt.figure(figsize=(8, 6))
+        plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'AUC = {auc:.4f}')
+        plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title(title)
+        plt.legend(loc='lower right')
+        plt.show()
 
     def log(self):
         for epoch, avg_train_loss, val_loss, train_acc, val_acc in self.logs:
