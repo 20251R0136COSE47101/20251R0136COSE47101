@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 
 class Classifier(nn.Module):
-    def __init__(self, Feature_dim = 708*14*14, AU_dim = 29, hidden_dim=256):
+    def __init__(self, combined_features = 708*14*14 + 29, hidden_dim=256):
         super(Classifier, self).__init__()
         concat_dim = Feature_dim + AU_dim # 138,768 + AU(29)
 
