@@ -27,6 +27,13 @@ class Trainer:
         self.criterion = nn.BCEWithLogitsLoss()
         self.max_epochs = max_epochs
         
+        # self.optimizer = optim.Adam(
+        #     list(self.fpf_model.parameters()) +
+        #     list(self.vertical_model.parameters()) +
+        #     list(self.classification_model.parameters()),
+        #     lr=lr
+        # )
+        
         self.logs = []
 
         
@@ -61,7 +68,7 @@ class Trainer:
                 correct_train += (preds == labels).sum().item()
                 total_train += labels.size(0)
 
-            avg_train_loss = total_loss / len(self.train_loader)
+            avg_train_loss = total_loss / len(self.dataloader)
             train_acc      = correct_train / total_train
             self.scheduler.step()
             print(f"Epoch {epoch} ▶ train_loss: {avg_train_loss:.4f}, train_acc: {train_acc:.4f}")
@@ -73,6 +80,40 @@ class Trainer:
             print(f"Loaded best model with val_acc = {self.best_val_acc:.4f},epoch = {self.best_epoch}")
             # self.logs.append((self.best_val_acc, self.best_epoch))
             
+    def eval(self):
+        self.model.eval()
+        total_loss = 0.0
+        correct, total = 0, 0
+        
+        with torch.no_grad():
+            for onset_img, apex_img, au, labels in self.dataloader:
+                # 데이터 cuda로 보내기
+                # inputs = [t.to(self.device) for t in [onset_img, apex_img, au, labels]]
+                # onset_img, apex_img, au, labels = inputs
+                onset_img, apex_img, au, labels = onset_img.to(self.device), apex_img.to(self.device), au.to(self.device), labels.to(self.device)
+                
+                
+                # 각각 모델 결과값 구하기기
+                fpf_features_onset = self.fpf_model(onset_img)
+                fpf_features_apex = self.fpf_model(apex_img)
+                fpf_features = fpf_features_onset + fpf_features_apex
+                vertical = self.vertical_model(apex_img)
+                
+                # 특징 결합
+                combined_features = torch.cat([fpf_features, vertical, au], dim=1)
+                
+                # 예측
+                outputs = self.classification_model(combined)
+                loss = self.criterion(outputs, labels.float())
+                
+                # 통계 계산
+                total_loss += loss.item()
+                #BCEWithLogitsLoss는 손실(loss) 계산 시 sigmoid내장됨. output은 없으니까 sigmoid따로 적용
+                preds = (torch.sigmoid(outputs) > 0.5).float()
+                correct += (preds == labels).all(dim=1).sum().item()
+                total += labels.size(0)
+                
+        return total_loss/len(self.dataloader), correct/total
 
     def log(self):
         for epoch, avg_train_loss, val_loss, train_acc, val_acc in self.logs:
