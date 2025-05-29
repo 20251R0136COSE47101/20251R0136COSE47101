@@ -84,6 +84,7 @@ class Trainer:
         self.model.eval()
         total_loss = 0.0
         correct, total = 0, 0
+        TP, FP, FN = 0, 0, 0  # True Positive, False Positive, False Negative
         
         with torch.no_grad():
             for onset_img, apex_img, au, labels in self.dataloader:
@@ -103,7 +104,7 @@ class Trainer:
                 combined_features = torch.cat([fpf_features, vertical, au], dim=1)
                 
                 # 예측
-                outputs = self.classification_model(combined)
+                outputs = self.classification_model(combined_features)
                 loss = self.criterion(outputs, labels.float())
                 
                 # 통계 계산
@@ -113,7 +114,23 @@ class Trainer:
                 correct += (preds == labels).all(dim=1).sum().item()
                 total += labels.size(0)
                 
-        return total_loss/len(self.dataloader), correct/total
+                # Confusion Matrix 구성 요소 계산
+                TP += ((preds == 1) & (labels == 1)).sum().item()
+                FP += ((preds == 1) & (labels == 0)).sum().item()
+                FN += ((preds == 0) & (labels == 1)).sum().item()
+                
+        avg_loss = total_loss / len(self.dataloader)
+        accuracy = correct / total
+        TN = total - (TP + FP + FN)  # True Negative 계산
+    
+        # Precision, Recall, F1 계산
+        precision = TP / (TP + FP) if (TP + FP) > 0 else 0
+        recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+    
+        confusion_matrix = torch.tensor([[TN, FP], [FN, TP]])
+                
+        return total_loss/len(self.dataloader), correct/total, avg_loss, accuracy, precision, recall, f1, confusion_matrix
 
     def log(self):
         for epoch, avg_train_loss, val_loss, train_acc, val_acc in self.logs:
