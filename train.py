@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 import seaborn as sns
+import sklearn.metrics as metrics
 
 class Trainer:
     def __init__(
@@ -89,6 +90,10 @@ class Trainer:
         correct, total = 0, 0
         TP, FP, FN = 0, 0, 0  # True Positive, False Positive, False Negative
         
+        # ROC 계산을 위한 데이터 수집 리스트
+        probs_list = []  # 예측 확률
+        labels_list = []  # 실제 라벨
+        
         with torch.no_grad():
             for onset_img, apex_img, au, labels in self.dataloader:
                 # 데이터 cuda로 보내기
@@ -112,6 +117,12 @@ class Trainer:
                 
                 # 통계 계산
                 total_loss += loss.item()
+                
+                # 예측 확률 수집 (ROC 계산용)
+                probs = torch.sigmoid(outputs)
+                probs_list.append(probs.cpu().numpy())
+                labels_list.append(labels.cpu().numpy())
+            
                 #BCEWithLogitsLoss는 손실(loss) 계산 시 sigmoid내장됨. output은 없으니까 sigmoid따로 적용
                 preds = (torch.sigmoid(outputs) > 0.5).float()
                 correct += (preds == labels).all(dim=1).sum().item()
@@ -122,6 +133,14 @@ class Trainer:
                 FP += ((preds == 1) & (labels == 0)).sum().item()
                 FN += ((preds == 0) & (labels == 1)).sum().item()
                 
+        # ROC 데이터 통합
+        all_probs = np.concatenate(probs_list)
+        all_labels = np.concatenate(labels_list)
+        
+        # ROC 곡선 및 AUC 계산
+        fpr, tpr, thresholds = metrics.roc_curve(all_labels, all_probs)
+        roc_auc = metrics.roc_auc_score(all_labels, all_probs)
+        
         avg_loss = total_loss / len(self.dataloader)
         accuracy = correct / total
         TN = total - (TP + FP + FN)  # True Negative 계산
@@ -133,7 +152,7 @@ class Trainer:
     
         confusion_matrix = torch.tensor([[TN, FP], [FN, TP]])
                 
-        return total_loss/len(self.dataloader), correct/total, avg_loss, accuracy, precision, recall, f1, confusion_matrix
+        return total_loss/len(self.dataloader), correct/total, avg_loss, accuracy, precision, recall, f1, confusion_matrix, roc_auc, fpr, tpr
     
     def plot_confusion_matrix(confusion_matrix, title='Confusion Matrix'):
         plt.figure(figsize=(5, 5))
