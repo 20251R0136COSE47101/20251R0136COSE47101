@@ -28,7 +28,7 @@ def preprocess(dataset_train="data/dataset/train", dataset_test="data/dataset/te
 
         #1. & #2. onset frame과 apex frame이 한꺼번에 뽑혀서
         extract_frame = find_onset_apex_frames
-        extract_frame(dataset_train)
+        extract_frame(dataset_train, onset_output_dir, apex_output_dir)
         #아직 미완성. onset/apex output directory도 넘겨야 하는데 일단 원본 함수부터 수정하고
         
         #3. AU를 추출해서 AU_output_dir에 저장.
@@ -52,7 +52,7 @@ def preprocess(dataset_train="data/dataset/train", dataset_test="data/dataset/te
 
         #1. & #2. onset frame과 apex frame이 한꺼번에 뽑혀서
         extract_frame = find_onset_apex_frames
-        extract_frame(dataset_test)
+        extract_frame(dataset_train, onset_output_dir, apex_output_dir)
         
         #3. AU를 추출해서 AU_output_dir에 저장.
         AU = extract_au
