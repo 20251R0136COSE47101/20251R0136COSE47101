@@ -1,14 +1,18 @@
 import os 
 import torch
 import argparse
+from torchvision.transforms import transforms
 
+#Our modules
 from preprocess import preprocess
-from inference import inference # optional
+# from inference import inference # optional
 from train import Trainer
-from model import Model
+# from model import Model
 from dataloader import DataLoader
 
 from Resnet_18 import resnet_18
+from BinaryClassification.classifier import Classifier
+
 
 #쓸까말까. transfer learning할거면 넣는게 좋을듯
 MEAN_RGB = (0.485, 0.456, 0.406)
@@ -51,7 +55,7 @@ if __name__ == "__main__":
     #3 Feature extraction & classification
     fpf_model = resnet_18.ResNet.ResNet50_FPF_Features()
     vertical_model = resnet_18.ResNet.ResNet18_Vertical_Features()
-    classification_model = MLP_model()
+    classification_model = Classifier()
     
     if args.mode == "train_and_test":
         # 전처리에서 어떻게 할지에 따라 경로 넣는방식 바꾸면 됨.

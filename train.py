@@ -24,7 +24,7 @@ class Trainer:
         self.dataloader = dataloader
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.BCEWithLogitsLoss()
         self.max_epochs = max_epochs
         
         self.logs = []
