@@ -37,6 +37,7 @@ def calculate_motion_score(prev_frame, curr_frame):
     combined_score = mag_flow * 0.7 + landmark_motion * 0.3
     return combined_score
 
+"""
 def find_onset_apex_frames(frames_dir):
     frame_files = sorted([os.path.join(frames_dir, f)
                           for f in os.listdir(frames_dir) if f.endswith(('.png', '.jpg'))])
@@ -74,3 +75,52 @@ if __name__ == "__main__":
     if result:
         print(f"Onset Frame: {result['onset_frame']}")
         print(f"Apex Frame: {result['apex_frame']}")
+"""
+
+def find_onset_apex_frames(frames_dir, onset_output_dir, apex_output_dir):
+    sub_dirs = [d for d in os.listdir(frames_dir) if os.path.isdir(os.path.join(frames_dir, d))]
+
+    for idx, sub_dir in enumerate(sub_dirs):
+        frame_files = sorted([os.path.join(sub_dir, f)
+                            for f in os.listdir(sub_dir) if f.endswith(('.png', '.jpg'))])
+        if len(frame_files) < 2:
+            print("Not enough frames to analyze.")
+            return None
+
+        motion_scores = []
+        prev_frame = cv2.imread(frame_files[0])
+        for frame_file in tqdm(frame_files[1:], desc="Processing frames"):
+            curr_frame = cv2.imread(frame_file)
+            if curr_frame is None or prev_frame is None:
+                motion_scores.append(0)
+                prev_frame = curr_frame
+                continue
+            score = calculate_motion_score(prev_frame, curr_frame)
+            motion_scores.append(score)
+            prev_frame = curr_frame
+
+        motion_scores = np.array(motion_scores)
+        print(motion_scores)
+        apex_idx = np.argmax(motion_scores) + 1  # +1 due to offset in motion_scores
+        threshold = np.mean(motion_scores) * 1.5
+        onset_idx = next((i for i, score in enumerate(motion_scores) if score > threshold), 0)
+
+        """
+        return {
+            'onset_frame': frame_files[onset_idx],
+            'apex_frame': frame_files[apex_idx],
+            'motion_scores': motion_scores
+        }
+        """
+        filename = f"{idx + 1:04d}.jpg"
+        #frame
+        onset_frame = frame_files[onset_idx]
+        apex_frame = frame_files[apex_idx]
+        #path
+        onset_path = os.path.join(onset_output_dir, filename)
+        apex_path = os.path.join(apex_output_dir, filename)
+
+        cv2.imwrite(onset_path, cv2.imread(onset_frame))
+        cv2.imwrite(apex_path, cv2.imread(apex_frame))
+
+
