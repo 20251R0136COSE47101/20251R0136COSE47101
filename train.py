@@ -4,6 +4,9 @@ import torch.optim as optim
 import torch.nn.functional as F
 from tqdm import tqdm
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 class Trainer:
     def __init__(
         self,
@@ -131,6 +134,20 @@ class Trainer:
         confusion_matrix = torch.tensor([[TN, FP], [FN, TP]])
                 
         return total_loss/len(self.dataloader), correct/total, avg_loss, accuracy, precision, recall, f1, confusion_matrix
+    
+    def plot_confusion_matrix(confusion_matrix, title='Confusion Matrix'):
+        plt.figure(figsize=(5, 5))
+        sns.heatmap(
+            confusion_matrix.numpy(), 
+            annot=True, fmt='d', 
+            cmap='Blues',
+            xticklabels=['Negative', 'Positive'],
+            yticklabels=['Negative', 'Positive']
+        )
+        plt.title(title)
+        plt.ylabel('Actual')
+        plt.xlabel('Predicted')
+        plt.show()
 
     def log(self):
         for epoch, avg_train_loss, val_loss, train_acc, val_acc in self.logs:
