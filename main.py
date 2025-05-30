@@ -17,26 +17,26 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='lie detection model')
     parser.add_argument('--do_preprocess', type=int, default=0, help='1: 전처리 함, 0: 안함. 데이터셋 바뀌면 1옵션으로 하면 됨.')
     parser.add_argument('--mode', type=str, default="train_and_val", help='train_and_val/inference/test')
-    parser.add_argument('--epochs', type=int, default=100, help='학습 에폭 수')
+    parser.add_argument('--epochs', type=int, default=5, help='학습 에폭 수')
     parser.add_argument('--batch_size', type=int, default=32, help='배치 크기')
-    parser.add_argument('--lr', type=float, default=0.001, help='학습률')
-    parser.add_argument('--hidden_dim', type=int, default=64, help='은닉층 차원')
+    parser.add_argument('--lr', type=float, default=0.0001, help='학습률')
+    parser.add_argument('--hidden_dim', type=int, default=256, help='은닉층 차원')
     parser.add_argument('--Loss', type=str, default="CrossEntropyLoss", help='CrossEntropyLoss/BCELoss')
     parser.add_argument('--path', type=str, default="binary_classifier.pth", help='dir of saved weight')
     args = parser.parse_args()
     
     #1 input, output directory setting
-    dataset_root = "data/dataset"
-    onset_output = "data/onset_output"
-    apex_output = "data/apex_output"
-    AU_output = "data/AU_output"
-    label_path = "data/label"
-    checkpoint_path = "checkpoints/"
+    dataset_root = "data\\dataset"
+    onset_output = "data\\onset_output"
+    apex_output = "data\\apex_output"
+    AU_output = "data\\AU_output"
+    label_path = "data\\label"
+    checkpoint_path = "checkpoints\\"
     
     #2 preprocess
     if args.do_preprocess == 1:
         # 경로에 있는거 지우고 하나요? 
-        preprocessed_train = preprocess(dataset_root, onset_output, apex_output, AU_output)
+        preprocess(dataset_root, onset_output, apex_output, AU_output)
     # else: do nothing
     
     #3 Feature extraction & classification
@@ -44,19 +44,19 @@ if __name__ == "__main__":
     vertical_model = resnet_18.ResNet.ResNet18_Vertical_Features()
     classification_model = Classifier()
     
-    if args.mode == "train_and_val":
-        # 전처리에서 어떻게 할지에 따라 경로 넣는방식 바꾸면 됨.
-        # ex) dataset_train, test폴더 내에 apex, au를 저장할거면 dataset_train, dataset_test만 넣으면 됨
-        trainer = Trainer(fpf_model, vertical_model, classification_model, \
-            LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path), checkpoint_path)
-        trainer.fit()
-        # trainer.log()
-    elif args.mode == "inference":
-        # optional. infer_dir가 전처리 안된 영상이라면 전처리 함수 돌리기
-        # inference(fpf_model, vertical_model, classification_model, infer_dir)
-        pass
-    elif args.mode == "test":
-        trainer = Trainer(fpf_model, vertical_model, classification_model, \
-            LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path), checkpoint_path)
-        trainer.test()
-    else: print("mode argument is wrong...\ndo type train_and_test or inference")
+    # if args.mode == "train_and_val":
+    #     # 전처리에서 어떻게 할지에 따라 경로 넣는방식 바꾸면 됨.
+    #     # ex) dataset_train, test폴더 내에 apex, au를 저장할거면 dataset_train, dataset_test만 넣으면 됨
+    #     trainer = Trainer(fpf_model, vertical_model, classification_model, \
+    #         LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path), checkpoint_path)
+    #     trainer.fit()
+    #     # trainer.log()
+    # elif args.mode == "inference":
+    #     # optional. infer_dir가 전처리 안된 영상이라면 전처리 함수 돌리기
+    #     # inference(fpf_model, vertical_model, classification_model, infer_dir)
+    #     pass
+    # elif args.mode == "test":
+    #     trainer = Trainer(fpf_model, vertical_model, classification_model, \
+    #         LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path), checkpoint_path)
+    #     trainer.test()
+    # else: print("mode argument is wrong...\ndo type train_and_test or inference")
