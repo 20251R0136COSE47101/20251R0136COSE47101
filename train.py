@@ -4,6 +4,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from tqdm import tqdm
 
+import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import sklearn.metrics as metrics
@@ -15,9 +16,9 @@ class Trainer:
         vertical_model, 
         classification_model,
         dataloader,
+        checkpoint: None,
         lr: float = 5e-4,
         max_epochs: int = 9,
-        checkpoint: None,
         patience: int = 3,
         device: str = f"cuda"
     ):

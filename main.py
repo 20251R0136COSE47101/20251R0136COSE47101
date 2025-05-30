@@ -37,11 +37,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     #1 input, output directory setting
-    dataset_root = "data/dataset/"
+    dataset_root = "data/dataset"
     onset_output = "data/onset_output"
     apex_output = "data/apex_output"
     AU_output = "data/AU_output"
     label_path = "data/label"
+    checkpoint_path = "checkpoints/"
     
     #2 preprocess
     if args.do_preprocess == 1:
@@ -58,7 +59,7 @@ if __name__ == "__main__":
         # 전처리에서 어떻게 할지에 따라 경로 넣는방식 바꾸면 됨.
         # ex) dataset_train, test폴더 내에 apex, au를 저장할거면 dataset_train, dataset_test만 넣으면 됨
         trainer = Trainer(fpf_model, vertical_model, classification_model, \
-            LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path, transform))
+            LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path, transform), checkpoint_path)
         trainer.fit()
         # trainer.log()
     elif args.mode == "inference":
@@ -67,6 +68,6 @@ if __name__ == "__main__":
         pass
     elif args.mode == "test":
         trainer = Trainer(fpf_model, vertical_model, classification_model, \
-            LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path, transform))
+            LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path, transform), checkpoint_path)
         trainer.test()
     else: print("mode argument is wrong...\ndo type train_and_test or inference")
