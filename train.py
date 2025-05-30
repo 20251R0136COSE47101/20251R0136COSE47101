@@ -228,17 +228,28 @@ class Trainer:
         return train_total_loss/len(self.test_dataloader), correct/total, avg_loss, accuracy, precision, recall, f1, confusion_matrix, roc_auc, fpr, tpr
     
     def plot_confusion_matrix(confusion_matrix, title='Confusion Matrix'):
-        plt.figure(figsize=(5, 5))
-        sns.heatmap(
-            confusion_matrix.numpy(), 
-            annot=True, fmt='d', 
-            cmap='Blues',
-            xticklabels=['Negative', 'Positive'],
-            yticklabels=['Negative', 'Positive']
+        plt.figure(figsize=(6, 5))
+        sns.set_theme(font_scale=1.2)  # 폰트 크기 조정
+
+        # heatmap 그리기
+        ax = sns.heatmap(
+            confusion_matrix.numpy() if hasattr(confusion_matrix, "numpy") else confusion_matrix,
+            annot=True, fmt='d', cmap='Blues',
+            cbar=True, square=True,
+            linewidths=0.5, linecolor='gray',
+            xticklabels=[0, 1], yticklabels=[0, 1],
+            vmin=0, vmax=200  # 예시 이미지처럼 최대값 고정
         )
-        plt.title(title)
-        plt.ylabel('Actual')
-        plt.xlabel('Predicted')
+
+        ax.set_xlabel("Predicted", fontsize=13, labelpad=10)
+        ax.set_ylabel("True", fontsize=13, labelpad=10)
+        ax.set_title(title, fontsize=15, pad=12)
+
+        # tick label 크기 및 위치 조정
+        ax.xaxis.set_ticklabels(['0', '1'], fontsize=12)
+        ax.yaxis.set_ticklabels(['0', '1'], fontsize=12, rotation=0)
+
+        plt.tight_layout()
         plt.show()
         
     def plot_roc_curve(fpr, tpr, auc, title='ROC Curve'):
