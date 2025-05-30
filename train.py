@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+from torchvision.transforms import transforms
 from tqdm import tqdm
 
 import os
@@ -54,7 +55,20 @@ class Trainer:
         
         self.logs = []
 
-        
+    def preprocess_vertical_image(self, img_apex_pil, img_onset_pil, image_size=(224, 224)):    
+        try:
+            normalize_transform = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                    std=[0.229, 0.224, 0.225])
+
+            difference_tensor = img_apex_pil - img_onset_pil
+            
+            normalized_difference_tensor = normalize_transform(difference_tensor)
+
+            batch_tensor = normalized_difference_tensor.unsqueeze(0) # (C, H, W) -> (1, C, H, W)
+
+            return batch_tensor
+        except:
+            print("ERROR: NO img!")
 
     def fit(self):
         for epoch in range(1, self.max_epochs + 1):
@@ -74,7 +88,7 @@ class Trainer:
                     fpf_features_onset = self.fpf_model(onset_img)
                     fpf_features_apex = self.fpf_model(apex_img)
                     fpf_features = fpf_features_onset + fpf_features_apex  # 두 이미지의 특징을 합침
-                    vertical_features = self.vertical_model(apex_img)
+                    vertical_features = self.vertical_model(self.preprocess_vertical_image(apex_img, onset_img))
                 combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
                 
                 outputs = self.classification_model(combined_features)
@@ -242,7 +256,7 @@ class Trainer:
             
             
         
-    def eval(self, dataloader=self.val_dataloader):
+    def eval(self):
         self.model.eval()
         val_total_loss = 0.0
         val_correct, val_total = 0, 0
