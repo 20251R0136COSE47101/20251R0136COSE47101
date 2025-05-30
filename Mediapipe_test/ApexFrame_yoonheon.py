@@ -70,7 +70,35 @@ def find_onset_apex_frames(frames_dir):
     }
 
 if __name__ == "__main__":
-    frames_directory = './dataset/Test/Test/Lie/Atul/What is your Name'
+    dataPath = '../dataset/Test/Test/Lie/Atul/What is your Name'
+    testPath = dataPath + '/Test/Test'
+    labelList = os.listdir(testPath)
+    for label in labelList: # Lie, Truth
+        personPath = testPath + '/' + label
+        personList = os.listdir(personPath)
+        for p in personList:
+            subjectPath = personPath + '/' + p
+            subjectList = os.listdir(subjectPath)
+            if not os.path.isdir(subjectPath):
+                continue
+
+            MEList = os.listdir(subjectPath)
+            for ME in MEList: # traverse all Micro-Expression sequences of the subject
+                print('Calculating OF/OS in ' + subject + '/' + ME)
+                MEPath = subjectPath + '/' + ME
+                '''
+                MEResPath = subResPath + '/' + ME
+                if os.path.exists(MEResPath): continue
+                if not os.path.exists(MEResPath):
+                    os.makedirs(MEResPath)
+                '''
+                startIdx, imgs = loadImages(MEPath, type)
+                
+                OS, OF = extractFeature(imgs, 0.2, type)
+                # drawPic(OF, MEResPath, 'Flow', startIdx, 0)
+                # drawPic(OS, MEResPath, 'Strain', startIdx, 0)
+                saveData('OF.txt', OF, startIdx)
+                saveData('OS.txt', OS, startIdx)
     result = find_onset_apex_frames(frames_directory)
     if result:
         print(f"Onset Frame: {result['onset_frame']}")
