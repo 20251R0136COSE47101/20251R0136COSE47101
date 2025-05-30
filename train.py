@@ -223,7 +223,7 @@ class Trainer:
         recall = TP / (TP + FN) if (TP + FN) > 0 else 0
         f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
     
-        confusion_matrix = torch.tensor([[TN, FP], [FN, TP]])
+        confusion_matrix = torch.tensor([[TP, FN], [FP, TN]])
                 
         return train_total_loss/len(self.test_dataloader), correct/total, avg_loss, accuracy, precision, recall, f1, confusion_matrix, roc_auc, fpr, tpr
     
@@ -246,8 +246,8 @@ class Trainer:
         ax.set_title(title, fontsize=15, pad=12)
 
         # tick label 크기 및 위치 조정
-        ax.xaxis.set_ticklabels(['0', '1'], fontsize=12)
-        ax.yaxis.set_ticklabels(['0', '1'], fontsize=12, rotation=0)
+        ax.xaxis.set_ticklabels(['Positive', 'Negative'], fontsize=12)
+        ax.yaxis.set_ticklabels(['Positive', 'Negative'], fontsize=12, rotation=0)
 
         plt.tight_layout()
         plt.show()
@@ -265,36 +265,3 @@ class Trainer:
     # def log(self):
     #     for epoch, avg_train_loss, val_loss, train_acc, val_acc in self.logs:
     #         print(f"Epoch {epoch} | train_Loss: {avg_train_loss:.4f} | train_Acc: {train_acc:.2%} | val_Loss: {val_loss:.4f} | val_Acc: {val_acc:.2%}")
-            
-            
-        
-    def eval(self):
-        self.model.eval()
-        val_total_loss = 0.0
-        val_correct, val_total = 0, 0
-        
-        with torch.no_grad():
-            # for onset_img, apex_img, au, labels in self.dataloader:
-            for onset_img, apex_img, au, labels in tqdm(self.val_dataloader, desc="[Test]"):
-                onset_img, apex_img, au, labels = onset_img.to(self.device), apex_img.to(self.device), au.to(self.device), labels.to(self.device)
-                
-                fpf_features_onset = self.fpf_model(onset_img)
-                fpf_features_apex = self.fpf_model(apex_img)
-                fpf_features = fpf_features_onset + fpf_features_apex
-                vertical = self.vertical_model(apex_img)
-                
-                combined_features = torch.cat([fpf_features, vertical, au], dim=1)
-                
-                outputs = self.classification_model(combined_features)
-                loss = self.criterion(outputs, labels.float())
-                
-                train_total_loss += loss.item()
-                
-                preds = (torch.sigmoid(outputs) > 0.5).float()
-                correct += (preds == labels).all(dim=1).sum().item()
-                total += labels.size(0)
-        
-        avg_val_loss = val_total_loss / len(self.val_dataloader)
-        accuracy = correct / total
-        
-        return avg_loss, accuracy 
