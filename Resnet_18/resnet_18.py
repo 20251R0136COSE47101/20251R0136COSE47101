@@ -282,27 +282,27 @@ def preprocess_vertical_image(apex_image_path, onset_image_path, image_size=(224
         print(f"Error processing difference image. Apex: {apex_image_path}, Onset: {onset_image_path}. Details: {e}")
         return None
 
+if __name__ == "__main__":
+    # apex frame 경로를 뽑아 apex, oneset 이미지 경로를 둘 다 넣으면 프레임 단위로 apex-oneset한 데이터를 resnet 돌린게 vertical_output에 1 512 14 14 로 나옴
+    ver_input = preprocess_vertical_image("../Test/Atul10459.png","../Test/Atul10459.png") #각각 apex 경로와 onset 경로
+    vertical_model = ResNet.ResNet18_Vertical_Features()
+    vertical_output = vertical_model(ver_input)
 
-# apex frame 경로를 뽑아 apex, oneset 이미지 경로를 둘 다 넣으면 프레임 단위로 apex-oneset한 데이터를 resnet 돌린게 vertical_output에 1 512 14 14 로 나옴
-ver_input = preprocess_vertical_image("../Test/Atul10459.png","../Test/Atul10459.png") #각각 apex 경로와 onset 경로
-vertical_model = ResNet.ResNet18_Vertical_Features()
-vertical_output = vertical_model(ver_input)
-
-print(vertical_output.size())
+    print(vertical_output.size())
 
 
-#이미지 경로를 넣으면 resnet 돌린 data가 FPF_output에 1 196 14 14 로 나옴. 각각 fpf_apex(oneset)_output으로 나오고, 이를 elementwise로 해준 최종 결과가 fpf_output
-fpf_apex_input = preprocess_image("../Test/Atul10459.png") # apex 경로
-fpf_onset_input = preprocess_image("../Test/Atul10459.png") # onset 경로
+    #이미지 경로를 넣으면 resnet 돌린 data가 FPF_output에 1 196 14 14 로 나옴. 각각 fpf_apex(oneset)_output으로 나오고, 이를 elementwise로 해준 최종 결과가 fpf_output
+    fpf_apex_input = preprocess_image("../Test/Atul10459.png") # apex 경로
+    fpf_onset_input = preprocess_image("../Test/Atul10459.png") # onset 경로
 
-fpf_model = ResNet.ResNet50_FPF_Features()
+    fpf_model = ResNet.ResNet50_FPF_Features()
 
-fpf_apex_output = fpf_model(fpf_apex_input)
-fpf_onset_output = fpf_model(fpf_onset_input)
+    fpf_apex_output = fpf_model(fpf_apex_input)
+    fpf_onset_output = fpf_model(fpf_onset_input)
 
-fpf_output = fpf_apex_output + fpf_onset_output
+    fpf_output = fpf_apex_output + fpf_onset_output
 
-print(fpf_output.size())
+    print(fpf_output.size())
 
-real_output = torch.cat((vertical_output,fpf_output), dim=1) #classification
-print(real_output.size())
+    real_output = torch.cat((vertical_output,fpf_output), dim=1) #classification
+    print(real_output.size())

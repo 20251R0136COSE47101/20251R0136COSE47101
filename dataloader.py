@@ -22,7 +22,14 @@ class LieDetectionDataset(Dataset):
     def __init__(self, onset_dir, apex_dir, au_dir, label_path, transform=None):
         self.onset_dir = onset_dir
         self.apex_dir = apex_dir
-        self.transform = transform
+        self.au_dir = au_dir
+        transform_ = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.RandomHorizontalFlip(p=0.5),  # 50% 확률로 좌우 반전
+            transforms.ToTensor(),
+            transforms.Normalize(mean=MEAN_RGB, std=VAR_RGB)
+        ])
+        self.transform = transform_
 
         # onset_dir에 있는 파일 리스트를 기준으로 샘플명 생성 (ex: 0001.jpg)
         # 확장자 jpg랑 png만 허용 -> 바꿔도 됨
@@ -37,7 +44,7 @@ class LieDetectionDataset(Dataset):
         with open(label_path, 'r') as f:
             for line in f:
                 name, label = line.strip().split()
-                labels[name] = int(label)
+                labels[name] = float(label)
         return labels
 
     def __len__(self):
@@ -65,7 +72,7 @@ class LieDetectionDataset(Dataset):
         au = torch.tensor(au_vector, dtype=torch.float) # 12개의 텐서(AU개수) (1, 12) shape으로 만들어야함. 나중에 concat시 필요
 
         # label
-        label = self.labels[sample_name]
+        label = self.labels[sample_key]
 
         return onset_img, apex_img, au, label
 

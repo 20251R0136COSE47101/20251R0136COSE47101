@@ -19,12 +19,13 @@ class Trainer:
         classification_model,
         dataloader,
         checkpoint: None,
+        max_epochs: int = 1,
         lr: float = 5e-4,
-        max_epochs: int = 9,
         patience: int = 3,
         device: str = f"cuda"
     ):
         self.device = device if torch.cuda.is_available() else "cpu"
+        print(self.device)
         
         self.fpf_model = fpf_model.to(self.device)
         self.vertical_model = vertical_model.to(self.device)
@@ -63,7 +64,41 @@ class Trainer:
             return batch_tensor
         except:
             print("ERROR: NO img!")
+    def plot_confusion_matrix(self, confusion_matrix, title='Confusion Matrix'):
+        plt.figure(figsize=(6, 5))
+        sns.set_theme(font_scale=1.2)  # 폰트 크기 조정
 
+        # heatmap 그리기
+        ax = sns.heatmap(
+            confusion_matrix.numpy() if hasattr(confusion_matrix, "numpy") else confusion_matrix,
+            annot=True, fmt='d', cmap='Blues',
+            cbar=True, square=True,
+            linewidths=0.5, linecolor='gray',
+            xticklabels=[0, 1], yticklabels=[0, 1],
+            vmin=0, vmax=200  # 예시 이미지처럼 최대값 고정
+        )
+
+        ax.set_xlabel("Predicted", fontsize=13, labelpad=10)
+        ax.set_ylabel("True", fontsize=13, labelpad=10)
+        ax.set_title(title, fontsize=15, pad=12)
+
+        # tick label 크기 및 위치 조정
+        ax.xaxis.set_ticklabels(['Positive', 'Negative'], fontsize=12)
+        ax.yaxis.set_ticklabels(['Positive', 'Negative'], fontsize=12, rotation=0)
+
+        plt.tight_layout()
+        plt.show()
+        
+    def plot_roc_curve(self, fpr, tpr, auc, title='ROC Curve'):
+        plt.figure(figsize=(8, 6))
+        plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'AUC = {auc:.4f}')
+        plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title(title)
+        plt.legend(loc='lower right')
+        plt.show()
+        
     def fit(self):
         for epoch in range(1, self.max_epochs + 1):
             # ——— TRAIN STEP ———
@@ -82,7 +117,10 @@ class Trainer:
                 fpf_features_onset = self.fpf_model(onset_img)
                 fpf_features_apex = self.fpf_model(apex_img)
                 fpf_features = fpf_features_onset + fpf_features_apex  # 두 이미지의 특징을 합침
-                vertical_features = self.vertical_model(self.preprocess_vertical_image(apex_img, onset_img))
+                vertical_features = self.vertical_model(self.preprocess_vertical_image(apex_img, onset_img).squeeze(0))
+                fpf_features = fpf_features.view(fpf_features.size(0), -1) 
+                vertical_features = vertical_features.view(vertical_features.size(0), -1)
+                # print((vertical_features.shape, fpf_features.shape, au.shape))
                 combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
                 
                 outputs = self.classification_model(combined_features)
@@ -92,13 +130,15 @@ class Trainer:
                 self.optimizer.step()
 
                 train_total_loss += loss.item()
-                preds = outputs.argmax(dim=1)
+                # preds = outputs.argmax(dim=-1)
+                preds = (torch.sigmoid(outputs) > 0.5).long().squeeze()
+                # print(f" pred: {preds}, labels: {labels}, (preds == labels): {(preds == labels)} (preds == labels).sum().item(): {(preds == labels).sum().item()}")
                 train_correct += (preds == labels).sum().item()
                 train_total += labels.size(0)
 
             avg_train_loss = train_total_loss / len(self.train_dataloader)
             train_acc = train_correct / train_total
-            self.scheduler.step()
+            # self.scheduler.step()
             print(f"Epoch {epoch} ▶ train_loss: {avg_train_loss:.4f}, train_acc: {train_acc:.4f}")
             
             # ——— EVAL STEP ———
@@ -115,15 +155,19 @@ class Trainer:
                     fpf_features_onset = self.fpf_model(onset_img)
                     fpf_features_apex = self.fpf_model(apex_img)
                     fpf_features = fpf_features_onset + fpf_features_apex
-                    vertical = self.vertical_model(apex_img)
-                    combined_features = torch.cat([fpf_features, vertical, au], dim=1)
+                    vertical_features = self.vertical_model(apex_img)
+                    fpf_features = fpf_features.view(fpf_features.size(0), -1) 
+                    vertical_features = vertical_features.view(vertical_features.size(0), -1)
+                    combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
+                    
                     
                     outputs = self.classification_model(combined_features)
                     loss = self.criterion(outputs, labels.float())
                     val_total_loss += loss.item()
                     
-                    preds = (torch.sigmoid(outputs) > 0.5).float()
-                    val_correct += (preds == labels).all(dim=1).sum().item()
+                    preds = (torch.sigmoid(outputs) > 0.5).long().squeeze()
+                    # val_correct += (preds == labels).all(dim=-1).sum().item()
+                    val_correct += (preds == labels).sum().item()
                     val_total += labels.size(0)
 
             avg_val_loss = val_total_loss / len(self.val_dataloader)
@@ -172,10 +216,13 @@ class Trainer:
                 fpf_features_onset = self.fpf_model(onset_img)
                 fpf_features_apex = self.fpf_model(apex_img)
                 fpf_features = fpf_features_onset + fpf_features_apex
-                vertical = self.vertical_model(apex_img)
+                vertical_features = self.vertical_model(apex_img)
+                fpf_features = fpf_features.view(fpf_features.size(0), -1) 
+                vertical_features = vertical_features.view(vertical_features.size(0), -1)
+                combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
                 
                 # 특징 결합
-                combined_features = torch.cat([fpf_features, vertical, au], dim=1)
+                combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
                 
                 # 예측
                 outputs = self.classification_model(combined_features)
@@ -190,8 +237,10 @@ class Trainer:
                 labels_list.append(labels.cpu().numpy())
             
                 #BCEWithLogitsLoss는 손실(loss) 계산 시 sigmoid내장됨. output은 없으니까 sigmoid따로 적용
-                preds = (torch.sigmoid(outputs) > 0.5).float()
-                correct += (preds == labels).all(dim=1).sum().item()
+                # preds = (torch.sigmoid(outputs) > 0.5).float()
+                preds = (torch.sigmoid(outputs) > 0.5).long().squeeze()
+                correct += (preds == labels).sum().item()
+                # correct += (preds == labels).all(dim=1).sum().item()
                 total += labels.size(0)
                 
                 # Confusion Matrix 구성 요소 계산
@@ -217,43 +266,12 @@ class Trainer:
         f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
     
         confusion_matrix = torch.tensor([[TP, FN], [FP, TN]])
-                
+        
+        self.plot_confusion_matrix(confusion_matrix)
+        self.plot_roc_curve(fpr, tpr, roc_auc)
         return train_total_loss/len(self.test_dataloader), correct/total, avg_loss, accuracy, precision, recall, f1, confusion_matrix, roc_auc, fpr, tpr
     
-    def plot_confusion_matrix(confusion_matrix, title='Confusion Matrix'):
-        plt.figure(figsize=(6, 5))
-        sns.set_theme(font_scale=1.2)  # 폰트 크기 조정
-
-        # heatmap 그리기
-        ax = sns.heatmap(
-            confusion_matrix.numpy() if hasattr(confusion_matrix, "numpy") else confusion_matrix,
-            annot=True, fmt='d', cmap='Blues',
-            cbar=True, square=True,
-            linewidths=0.5, linecolor='gray',
-            xticklabels=[0, 1], yticklabels=[0, 1],
-            vmin=0, vmax=200  # 예시 이미지처럼 최대값 고정
-        )
-
-        ax.set_xlabel("Predicted", fontsize=13, labelpad=10)
-        ax.set_ylabel("True", fontsize=13, labelpad=10)
-        ax.set_title(title, fontsize=15, pad=12)
-
-        # tick label 크기 및 위치 조정
-        ax.xaxis.set_ticklabels(['Positive', 'Negative'], fontsize=12)
-        ax.yaxis.set_ticklabels(['Positive', 'Negative'], fontsize=12, rotation=0)
-
-        plt.tight_layout()
-        plt.show()
-        
-    def plot_roc_curve(fpr, tpr, auc, title='ROC Curve'):
-        plt.figure(figsize=(8, 6))
-        plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'AUC = {auc:.4f}')
-        plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title(title)
-        plt.legend(loc='lower right')
-        plt.show()
+    
 
     # def log(self):
     #     for epoch, avg_train_loss, val_loss, train_acc, val_acc in self.logs:
