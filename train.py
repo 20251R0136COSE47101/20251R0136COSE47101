@@ -29,30 +29,23 @@ class Trainer:
         self.fpf_model = fpf_model.to(self.device)
         self.vertical_model = vertical_model.to(self.device)
         self.classification_model = classification_model.to(self.device)
-        # self.model = nn.Sequential(
-        #     self.fpf_model,
-        #     self.vertical_model,
-        #     self.classification_model
-        # ).to(self.device)
         
         self.dataloader = dataloader
         self.train_dataloader = dataloader.train_dataloader
         self.val_dataloader = dataloader.val_dataloader
         self.test_dataloader = dataloader.test_dataloader
 
-
-        self.optimizer = optim.Adam(self.classification_model.parameters(), lr=lr)
+        self.optimizer = optim.Adam(
+            list(self.classification_model.parameters()) +
+            list(self.fpf_model.parameters()) +
+            list(self.vertical_model.parameters()),
+            lr=lr
+        )
+        # self.optimizer = optim.Adam(self.classification_model.parameters(), lr=lr)
         self.criterion = nn.BCEWithLogitsLoss()
         self.max_epochs = max_epochs
         
         self.checkpoint = checkpoint
-        
-        # self.optimizer = optim.Adam(
-        #     list(self.fpf_model.parameters()) +
-        #     list(self.vertical_model.parameters()) +
-        #     list(self.classification_model.parameters()),
-        #     lr=lr
-        # )
         
         self.logs = []
 
@@ -85,11 +78,11 @@ class Trainer:
                 
                 self.optimizer.zero_grad()
                 # overfitting 고려하기. 적은 데이터셋으로 특징 추출 레이어까지 학습 할 것인가?
-                with torch.no_grad():
-                    fpf_features_onset = self.fpf_model(onset_img)
-                    fpf_features_apex = self.fpf_model(apex_img)
-                    fpf_features = fpf_features_onset + fpf_features_apex  # 두 이미지의 특징을 합침
-                    vertical_features = self.vertical_model(self.preprocess_vertical_image(apex_img, onset_img))
+                # with torch.no_grad():
+                fpf_features_onset = self.fpf_model(onset_img)
+                fpf_features_apex = self.fpf_model(apex_img)
+                fpf_features = fpf_features_onset + fpf_features_apex  # 두 이미지의 특징을 합침
+                vertical_features = self.vertical_model(self.preprocess_vertical_image(apex_img, onset_img))
                 combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
                 
                 outputs = self.classification_model(combined_features)

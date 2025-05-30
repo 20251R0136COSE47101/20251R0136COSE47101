@@ -30,7 +30,7 @@ if __name__ == "__main__":
     onset_output = "data\\onset_output"
     apex_output = "data\\apex_output"
     AU_output = "data\\AU_output"
-    label_path = "data\\label"
+    label_path = "data\\label\\labels.txt"
     checkpoint_path = "checkpoints\\"
     
     #2 preprocess
