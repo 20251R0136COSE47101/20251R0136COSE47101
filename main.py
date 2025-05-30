@@ -66,5 +66,10 @@ if __name__ == "__main__":
         # trainer.log()
     elif args.mode == "inference":
         # optional. infer_dir가 전처리 안된 영상이라면 전처리 함수 돌리기
-        inference(fpf_model, vertical_model, classification_model, infer_dir)
+        # inference(fpf_model, vertical_model, classification_model, infer_dir)
+        pass
+    elif args.mode == "test":
+        trainer = Trainer(fpf_model, vertical_model, classification_model, \
+            DataLoader(onset_output, apex_output, AU_output, label_path, transform))
+        trainer.test()
     else: print("mode argument is wrong...\ndo type train_and_test or inference")

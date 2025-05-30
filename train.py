@@ -25,7 +25,16 @@ class Trainer:
         self.fpf_model = fpf_model.to(self.device)
         self.vertical_model = vertical_model.to(self.device)
         self.classification_model = classification_model.to(self.device)
+        
         self.dataloader = dataloader
+        self.train_dataloader = dataloader.train_dataloader
+        self.val_dataloader = dataloader.val_dataloader
+        self.test_dataloader = dataloader.test_dataloader
+        # self.model = nn.Sequential(
+        #     self.fpf_model,
+        #     self.vertical_model,
+        #     self.classification_model
+        # ).to(self.device)
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.criterion = nn.BCEWithLogitsLoss()
@@ -181,3 +190,36 @@ class Trainer:
     def log(self):
         for epoch, avg_train_loss, val_loss, train_acc, val_acc in self.logs:
             print(f"Epoch {epoch} | train_Loss: {avg_train_loss:.4f} | train_Acc: {train_acc:.2%} | val_Loss: {val_loss:.4f} | val_Acc: {val_acc:.2%}")
+            
+            
+        
+    def test(self):
+        self.model.eval()
+        total_loss = 0.0
+        correct, total = 0, 0
+        
+        with torch.no_grad():
+            # for onset_img, apex_img, au, labels in self.dataloader:
+            for onset_img, apex_img, au, labels in tqdm(self.dataloader, desc="[Test]"):
+                onset_img, apex_img, au, labels = onset_img.to(self.device), apex_img.to(self.device), au.to(self.device), labels.to(self.device)
+                
+                fpf_features_onset = self.fpf_model(onset_img)
+                fpf_features_apex = self.fpf_model(apex_img)
+                fpf_features = fpf_features_onset + fpf_features_apex
+                vertical = self.vertical_model(apex_img)
+                
+                combined_features = torch.cat([fpf_features, vertical, au], dim=1)
+                
+                outputs = self.classification_model(combined_features)
+                loss = self.criterion(outputs, labels.float())
+                
+                total_loss += loss.item()
+                
+                preds = (torch.sigmoid(outputs) > 0.5).float()
+                correct += (preds == labels).all(dim=1).sum().item()
+                total += labels.size(0)
+        
+        avg_loss = total_loss / len(self.dataloader)
+        accuracy = correct / total
+        
+        return avg_loss, accuracy 

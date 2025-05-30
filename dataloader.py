@@ -4,7 +4,8 @@ import pandas as pd
 from PIL import Image
 
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
+
 
 class LieDetectionDataset(Dataset):
     def __init__(self, onset_dir, apex_dir, au_dir, label_path, transform=None):
@@ -61,8 +62,29 @@ class LieDetectionDataLoader:
     def __init__(self, onset_dir, apex_dir, au_dir, label_path, \
         batch_size=32, shuffle=True, num_workers=0, transform=None):
         self.dataset = LieDetectionDataset(onset_dir, apex_dir, au_dir, label_path, transform=transform)
-        self.dataloader = DataLoader(
-            self.dataset,
+        
+        self.dataset_size = len(self.dataset)
+        if self.dataset_size == 0:
+            raise ValueError("Dataset is empty. Please check the directories and label file.")
+        self.train_size = int(self.dataset_size * 0.8)
+        self.validation_size = int(self.dataset_size * 0.1)
+        self.test_size = self.dataset_size - self.train_size - self.validation_size
+        
+        self.train_ds, self.val_ds, self.test_ds = random_split(self.dataset, [self.train_size, self.validation_size, self.test_size])
+        self.train_dataloader = DataLoader(
+            self.train_ds,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            num_workers=num_workers
+        )
+        self.val_dataloader = DataLoader(
+            self.val_ds,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            num_workers=num_workers
+        )
+        self.test_dataloader = DataLoader(
+            self.test_ds,
             batch_size=batch_size,
             shuffle=shuffle,
             num_workers=num_workers
