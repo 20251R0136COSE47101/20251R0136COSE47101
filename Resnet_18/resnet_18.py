@@ -86,7 +86,7 @@ class CVABlock(nn.Module):
 
     def forward(self, F_conv, prev_Attn_Y=None):
         
-        out = F.avg_pool2d(F_conv, kernel_size=(2, 1))
+        out = F.adaptive_avg_pool2d(F_conv, (None, 1))
         out = self.fc_reduce(out) # F : Conv 1*1
         out = self.bn_reduce(out) # F : Batch Norm
         out = self.activation(out)
@@ -170,14 +170,6 @@ class ResNet(nn.Module):
             out = out * cva_attn.expand_as(out)
 
         out = F.adaptive_avg_pool2d(out, (14, 14))
-
-        if self.use_cva and self.cva_block is not None: # 일단 최종 resnet으로 뽑은 feature를 cva_module 4번 돌리도록 구현. 만약 layer 거칠 때마다 하는게 효율이 좋다면 수정 필요.
-            cva_attn = None
-            current_feature = out
-            for cva_layer in self.cva_block:
-                current_feature, cva_attn = cva_layer(current_feature, cva_attn) # 논문 상, feature는 유지하고 최종 attention 뽑은 것만 feature와 합치는 것 같아 일단 해당 방식으로 구현
-            out = current_feature * cva_attn.expand_as(current_feature) 
-
 
         if self.adjust_channels_conv is not None:
           out = F.relu(self.adjust_channels_bn(self.adjust_channels_conv(out)))
