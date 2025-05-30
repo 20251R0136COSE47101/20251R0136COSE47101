@@ -76,7 +76,7 @@ class CVABlock(nn.Module):
         reduced_channels = max(8, channels // reduction_factor) # max{8, C/32}
         self.fc_reduce = nn.Conv2d(channels, reduced_channels, kernel_size=1, bias=False) # F: 1*1 conv
         self.bn_reduce = nn.BatchNorm2d(reduced_channels) # F : batch Norm
-        self.activation = nn.ReLU(inplace=True) 
+        self.activation = torch.nn.Hardswish(inplace=True) 
         self.fc_restore = nn.Conv2d(reduced_channels, channels, kernel_size=1, bias=False) # F : 1*1 conv
         self.sigmoid = nn.Sigmoid() # F : sigmoid
 
