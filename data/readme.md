@@ -8,9 +8,7 @@ data:
 
 ├─dataset
 
-│  ├─test
-
-│  └─train
+│ 
 
 └─label
 
