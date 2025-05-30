@@ -86,7 +86,7 @@ class CVABlock(nn.Module):
 
     def forward(self, F_conv, prev_Attn_Y=None):
         
-        out = F_conv.mean(dim=3, keepdim=True) # F : Y avg pool
+        out = F.avg_pool2d(F_conv, kernel_size=(2, 1))
         out = self.fc_reduce(out) # F : Conv 1*1
         out = self.bn_reduce(out) # F : Batch Norm
         out = self.activation(out)
@@ -106,6 +106,7 @@ class CVABlock(nn.Module):
 
    
 class ResNet(nn.Module):
+
     def __init__(self, block, num_blocks, in_channels = 3, out_channels = None, use_cva=False):
         super(ResNet, self).__init__()
         self.in_planes = 64
@@ -152,7 +153,7 @@ class ResNet(nn.Module):
             cva_attn = None
             current_feature = out
             for cva_layer in self.cva_block:
-                _ , cva_attn = cva_layer(current_feature, cva_attn) # 논문 상, feature는 유지하고 최종 attention 뽑은 것만 feature와 합치는 것 같아 일단 해당 방식으로 구현
+                current_feature, cva_attn = cva_layer(current_feature, cva_attn) # 논문 상, feature는 유지하고 최종 attention 뽑은 것만 feature와 합치는 것 같아 일단 해당 방식으로 구현
             out = current_feature * cva_attn.expand_as(current_feature) 
 
 
