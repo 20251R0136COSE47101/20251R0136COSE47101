@@ -3,14 +3,14 @@ from Mediapipe_test.ApexFrame_yoonheon import find_onset_apex_frames
 from AU.AUExtraction import extract_au
 import pandas as pd
 
-def preprocess(dataset_train="data/dataset/train", dataset_test="data/dataset/test", \
+def preprocess(dataset_root="data/dataset", \
     onset_output_dir="data/onset_output", apex_output_dir="data/apex_output", \
     AU_output_dir="data/AU_output", dataset_type = "image"):
 
     if dataset_type == "image":
-        for sample in os.listdir(dataset_train):
-            lie_dir = os.path.join(dataset_train, "Lie")
-            truth_dir = os.path.join(dataset_train, "Truth")
+        for sample in os.listdir(dataset_root):
+            lie_dir = os.path.join(dataset_root, "Lie")
+            truth_dir = os.path.join(dataset_root, "Truth")
             for person in os.listdir(truth_dir):
                 q_dir = os.path.join(truth_dir, person)
                 for q in os.listdir(q_dir):
