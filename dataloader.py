@@ -5,6 +5,17 @@ from PIL import Image
 
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
+from torchvision.transforms import transforms
+#쓸까말까. transfer learning할거면 넣는게 좋을듯
+MEAN_RGB = (0.485, 0.456, 0.406)
+VAR_RGB = (0.229, 0.224, 0.225)
+
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.RandomHorizontalFlip(p=0.5),  # 50% 확률로 좌우 반전
+    transforms.ToTensor(),
+    transforms.Normalize(mean=MEAN_RGB, std=VAR_RGB)
+])
 
 
 class LieDetectionDataset(Dataset):

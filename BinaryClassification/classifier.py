@@ -7,7 +7,7 @@ import numpy as np
 class Classifier(nn.Module):
     def __init__(self, combined_features = 708*14*14 + 29, hidden_dim=256):
         super(Classifier, self).__init__()
-        concat_dim = Feature_dim + AU_dim # 138,768 + AU(29)
+        concat_dim = combined_features #Feature_dim + AU_dim # 138,768 + AU(29)
 
         # self.sigmoid = nn.Sigmoid() # BCEWithLogitsLoss에서 내부적으로 sigmoid실행(trainer)
         self.fc = nn.Sequential(

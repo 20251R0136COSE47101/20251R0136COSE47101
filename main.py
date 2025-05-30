@@ -12,17 +12,6 @@ from Resnet_18 import resnet_18
 from BinaryClassification.classifier import Classifier
 
 
-#쓸까말까. transfer learning할거면 넣는게 좋을듯
-MEAN_RGB = (0.485, 0.456, 0.406)
-VAR_RGB = (0.229, 0.224, 0.225)
-
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.RandomHorizontalFlip(p=0.5),  # 50% 확률로 좌우 반전
-    transforms.ToTensor(),
-    transforms.Normalize(mean=MEAN_RGB, std=VAR_RGB)
-])
-
 if __name__ == "__main__":
     #0 parser setting
     parser = argparse.ArgumentParser(description='lie detection model')
@@ -59,7 +48,7 @@ if __name__ == "__main__":
         # 전처리에서 어떻게 할지에 따라 경로 넣는방식 바꾸면 됨.
         # ex) dataset_train, test폴더 내에 apex, au를 저장할거면 dataset_train, dataset_test만 넣으면 됨
         trainer = Trainer(fpf_model, vertical_model, classification_model, \
-            LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path, transform), checkpoint_path)
+            LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path), checkpoint_path)
         trainer.fit()
         # trainer.log()
     elif args.mode == "inference":
@@ -68,6 +57,6 @@ if __name__ == "__main__":
         pass
     elif args.mode == "test":
         trainer = Trainer(fpf_model, vertical_model, classification_model, \
-            LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path, transform), checkpoint_path)
+            LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path), checkpoint_path)
         trainer.test()
     else: print("mode argument is wrong...\ndo type train_and_test or inference")
