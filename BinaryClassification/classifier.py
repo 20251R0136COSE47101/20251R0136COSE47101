@@ -13,7 +13,7 @@ class Classifier(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(concat_dim, 1024),
             nn.BatchNorm1d(1024),
-            nn.RELU(),
+            nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(1024, 512),
             nn.BatchNorm1d(512),
