@@ -86,7 +86,7 @@ class CVABlock(nn.Module):
 
     def forward(self, F_conv, prev_Attn_Y=None):
         
-        out = F_conv.mean(dim=3, keepdim=True) # F : Y avg pool
+        out = F.avg_pool2d(F_conv, kernel_size=(2, 1))
         out = self.fc_reduce(out) # F : Conv 1*1
         out = self.bn_reduce(out) # F : Batch Norm
         out = self.activation(out)
@@ -106,11 +106,13 @@ class CVABlock(nn.Module):
 
    
 class ResNet(nn.Module):
+
     def __init__(self, block, num_blocks, in_channels = 3, out_channels = None, use_cva=False):
         super(ResNet, self).__init__()
         self.in_planes = 64
         self.out_channels = out_channels
         self.use_cva = use_cva
+        self.block_expansion = block.expansion
 
         self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
@@ -126,9 +128,17 @@ class ResNet(nn.Module):
             self.adjust_channels_conv = None
 
         if self.use_cva:
-            self.cva_block = nn.ModuleList([CVABlock(512 * block.expansion) for _ in range(4)])
+            self.cva1 = CVABlock(64 * self.block_expansion)
+            self.cva2 = CVABlock(128 * self.block_expansion)
+            self.cva3 = CVABlock(256 * self.block_expansion)
+            self.cva4 = CVABlock(512 * self.block_expansion)
+
+            self.attn_adapter1_2 = nn.Conv2d(64 * self.block_expansion, 128 * self.block_expansion, kernel_size=1)
+            self.attn_adapter2_3 = nn.Conv2d(128 * self.block_expansion, 256 * self.block_expansion, kernel_size=1)
+            self.attn_adapter3_4 = nn.Conv2d(256 * self.block_expansion, 512 * self.block_expansion, kernel_size=1)
         else :
-            self.cva_block = None
+            self.cva1, self.cva2, self.cva3, self.cva4  = None, None, None, None
+            self.attn_adapter1_2, self.attn_adapter2_3, self.attn_adapter3_4 = None, None, None
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)
@@ -141,10 +151,23 @@ class ResNet(nn.Module):
     def forward(self, x):
 
         out = F.relu(self.bn1(self.conv1(x)))
+        cva_attn = None
         out = self.layer1(out)
+        if self.use_cva and self.cva1 is not None:
+            _ , cva_attn = self.cva1(out, cva_attn)
+            cva_attn = self.attn_adapter1_2(cva_attn)
         out = self.layer2(out)
+        if self.use_cva and self.cva2 is not None:
+            _ , cva_attn = self.cva2(out, cva_attn)
+            cva_attn = self.attn_adapter2_3(cva_attn)
         out = self.layer3(out)
+        if self.use_cva and self.cva3 is not None:
+            _ , cva_attn = self.cva3(out, cva_attn)
+            cva_attn = self.attn_adapter3_4(cva_attn)
         out = self.layer4(out)
+        if self.use_cva and self.cva4 is not None:
+            _ , cva_attn = self.cva4(out, cva_attn)
+            out = out * cva_attn.expand_as(out)
 
         out = F.adaptive_avg_pool2d(out, (14, 14))
 
@@ -152,7 +175,7 @@ class ResNet(nn.Module):
             cva_attn = None
             current_feature = out
             for cva_layer in self.cva_block:
-                _ , cva_attn = cva_layer(current_feature, cva_attn) # 논문 상, feature는 유지하고 최종 attention 뽑은 것만 feature와 합치는 것 같아 일단 해당 방식으로 구현
+                current_feature, cva_attn = cva_layer(current_feature, cva_attn) # 논문 상, feature는 유지하고 최종 attention 뽑은 것만 feature와 합치는 것 같아 일단 해당 방식으로 구현
             out = current_feature * cva_attn.expand_as(current_feature) 
 
 
@@ -269,14 +292,16 @@ def preprocess_vertical_image(apex_image_path, onset_image_path, image_size=(224
 
 
 # apex frame 경로를 뽑아 apex, oneset 이미지 경로를 둘 다 넣으면 프레임 단위로 apex-oneset한 데이터를 resnet 돌린게 vertical_output에 1 512 14 14 로 나옴
-ver_input = preprocess_vertical_image("apex 이미지 경로","onset 이미지 경로")
+ver_input = preprocess_vertical_image("../Test/Atul10459.png","../Test/Atul10459.png") #각각 apex 경로와 onset 경로
 vertical_model = ResNet.ResNet18_Vertical_Features()
 vertical_output = vertical_model(ver_input)
 
+print(vertical_output.size())
+
 
 #이미지 경로를 넣으면 resnet 돌린 data가 FPF_output에 1 196 14 14 로 나옴. 각각 fpf_apex(oneset)_output으로 나오고, 이를 elementwise로 해준 최종 결과가 fpf_output
-fpf_apex_input = preprocess_image("apex 이미지 경로")
-fpf_onset_input = preprocess_image("onset 이미지 경로")
+fpf_apex_input = preprocess_image("../Test/Atul10459.png") # apex 경로
+fpf_onset_input = preprocess_image("../Test/Atul10459.png") # onset 경로
 
 fpf_model = ResNet.ResNet50_FPF_Features()
 
@@ -285,6 +310,7 @@ fpf_onset_output = fpf_model(fpf_onset_input)
 
 fpf_output = fpf_apex_output + fpf_onset_output
 
+print(fpf_output.size())
 
-real_output = np.concat(vertical_output,fpf_output) #classification
-
+real_output = torch.cat((vertical_output,fpf_output), dim=1) #classification
+print(real_output.size())

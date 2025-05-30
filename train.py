@@ -4,6 +4,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torchvision.transforms import transforms
 from tqdm import tqdm
+import numpy as np
 
 import os
 import matplotlib.pyplot as plt
@@ -40,7 +41,7 @@ class Trainer:
         self.test_dataloader = dataloader.test_dataloader
 
 
-        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
+        self.optimizer = optim.Adam(self.classification_model.parameters(), lr=lr)
         self.criterion = nn.BCEWithLogitsLoss()
         self.max_epochs = max_epochs
         
@@ -213,7 +214,7 @@ class Trainer:
         fpr, tpr, thresholds = metrics.roc_curve(all_labels, all_probs)
         roc_auc = metrics.roc_auc_score(all_labels, all_probs)
         
-        avg_loss = train_total_loss / len(self.dataloatest_dataloaderder)
+        avg_loss = train_total_loss / len(self.test_dataloader)
         accuracy = correct / total
         TN = total - (TP + FP + FN)  # True Negative 계산
     
