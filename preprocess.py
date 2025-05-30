@@ -37,8 +37,9 @@ def preprocess(dataset_train="data/dataset/train", dataset_test="data/dataset/te
         do save apex_frames of dataset_train
         
         #3. AU를 추출해서 AU_output_dir에 저장.
-        AU = AU를 뽑아내는 함수
-        do save AUs of dataset_train
+        AU = extract_au
+        AU(apex_output_dir, AU_output_dir)
+        #do save AUs of dataset_train
         
         #4. label 정보 담긴 파일(.txt로) 생성
         # sample_name label 형식으로 2열로 만들기
