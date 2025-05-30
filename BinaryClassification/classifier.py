@@ -21,9 +21,9 @@ class Classifier(nn.Module):
             nn.Dropout(0.3),
             nn.Linear(512, 1)
         )
-        for layer in self.fc:
-            if isinstance(layer, nn.Linear):
-                nn.init.kaiming_normal_(layer.weight, mode='fan_out', nonlinearity='relu')
+        # for layer in self.fc:
+        #     if isinstance(layer, nn.Linear):
+        #         nn.init.kaiming_normal_(layer.weight, mode='fan_out', nonlinearity='relu')
         
     def forward(self, x):
         return self.fc(x).squeeze()

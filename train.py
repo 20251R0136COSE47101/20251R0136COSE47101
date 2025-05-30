@@ -17,6 +17,7 @@ class Trainer:
         dataloader,
         lr: float = 5e-4,
         max_epochs: int = 9,
+        checkpoint: None,
         patience: int = 3,
         device: str = f"cuda"
     ):
@@ -25,20 +26,23 @@ class Trainer:
         self.fpf_model = fpf_model.to(self.device)
         self.vertical_model = vertical_model.to(self.device)
         self.classification_model = classification_model.to(self.device)
-        
-        self.dataloader = dataloader
-        self.train_dataloader = dataloader.train_dataloader
-        self.val_dataloader = dataloader.val_dataloader
-        self.test_dataloader = dataloader.test_dataloader
         # self.model = nn.Sequential(
         #     self.fpf_model,
         #     self.vertical_model,
         #     self.classification_model
         # ).to(self.device)
+        
+        self.dataloader = dataloader
+        self.train_dataloader = dataloader.train_dataloader
+        self.val_dataloader = dataloader.val_dataloader
+        self.test_dataloader = dataloader.test_dataloader
+
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.criterion = nn.BCEWithLogitsLoss()
         self.max_epochs = max_epochs
+        
+        self.checkpoint = checkpoint
         
         # self.optimizer = optim.Adam(
         #     list(self.fpf_model.parameters()) +
@@ -54,11 +58,13 @@ class Trainer:
     def fit(self):
         for epoch in range(1, self.max_epochs + 1):
             # ——— TRAIN STEP ———
-            self.model.train()
-            total_loss = 0.0
-            correct_train, total_train = 0, 0
+            self.fpf_model.train()
+            self.vertical_model.train()
+            self.classification_model.train()
+            train_total_loss = 0.0
+            train_correct, train_total = 0, 0
 
-            for onset_img, apex_img, au, labels in tqdm(self.dataloader, desc=f"[Train] Epoch {epoch}"):
+            for onset_img, apex_img, au, labels in tqdm(self.train_dataloader, desc=f"[Train] Epoch {epoch}"):
                 onset_img, apex_img, au, labels = onset_img.to(self.device), apex_img.to(self.device), au.to(self.device), labels.to(self.device)
                 
                 self.optimizer.zero_grad()
@@ -76,26 +82,68 @@ class Trainer:
                 loss.backward()
                 self.optimizer.step()
 
-                total_loss += loss.item()
+                train_total_loss += loss.item()
                 preds = outputs.argmax(dim=1)
-                correct_train += (preds == labels).sum().item()
-                total_train += labels.size(0)
+                train_correct += (preds == labels).sum().item()
+                train_total += labels.size(0)
 
-            avg_train_loss = total_loss / len(self.dataloader)
-            train_acc      = correct_train / total_train
+            avg_train_loss = train_total_loss / len(self.train_dataloader)
+            train_acc = train_correct / train_total
             self.scheduler.step()
             print(f"Epoch {epoch} ▶ train_loss: {avg_train_loss:.4f}, train_acc: {train_acc:.4f}")
+            
+            # ——— EVAL STEP ———
+            self.fpf_model.eval()
+            self.vertical_model.eval()
+            self.classification_model.eval()
+            val_total_loss = 0.0
+            val_correct, val_total = 0, 0
 
+            with torch.no_grad():
+                for onset_img, apex_img, au, labels in tqdm(self.val_dataloader, desc=f"[Val] Epoch {epoch}"):
+                    onset_img, apex_img, au, labels = onset_img.to(self.device), apex_img.to(self.device), au.to(self.device), labels.to(self.device)
+                    
+                    fpf_features_onset = self.fpf_model(onset_img)
+                    fpf_features_apex = self.fpf_model(apex_img)
+                    fpf_features = fpf_features_onset + fpf_features_apex
+                    vertical = self.vertical_model(apex_img)
+                    combined_features = torch.cat([fpf_features, vertical, au], dim=1)
+                    
+                    outputs = self.classification_model(combined_features)
+                    loss = self.criterion(outputs, labels.float())
+                    val_total_loss += loss.item()
+                    
+                    preds = (torch.sigmoid(outputs) > 0.5).float()
+                    val_correct += (preds == labels).all(dim=1).sum().item()
+                    val_total += labels.size(0)
 
+            avg_val_loss = val_total_loss / len(self.val_dataloader)
+            val_acc = val_correct / val_total
+            print(f"Epoch {epoch} ▶ val_loss: {avg_val_loss:.4f}, val_acc: {val_acc:.4f}")
+
+            if (epoch%4==0): 
+                torch.save(self.fpf_model.state_dict(), f'./checkpoints/fpf_model_epoch_{epoch}.pth')
+                torch.save(self.vertical_model.state_dict(), f'./checkpoints/vertical_model_epoch_{epoch}.pth')
+                torch.save(self.classification_model.state_dict(), f'./checkpoints/classification_model_epoch_{epoch}.pth')
+        torch.save(self.fpf_model.state_dict(), f'./checkpoints/fpf_model_final.pth')
+        torch.save(self.vertical_model.state_dict(), f'./checkpoints/vertical_model_final.pth')
+        torch.save(self.classification_model.state_dict(), f'./checkpoints/classification_model_final.pth')
         # ——— 훈련 종료 후 best 모델 로드 ———
-        if self.best_val_acc > 0:
-            self.model.load_state_dict(torch.load(self.ckpt_path))
-            print(f"Loaded best model with val_acc = {self.best_val_acc:.4f},epoch = {self.best_epoch}")
+        # if self.best_val_acc > 0:
+        #     self.model.load_state_dict(torch.load(self.ckpt_path))
+        #     print(f"Loaded best model with val_acc = {self.best_val_acc:.4f},epoch = {self.best_epoch}")
             # self.logs.append((self.best_val_acc, self.best_epoch))
             
-    def eval(self):
-        self.model.eval()
-        total_loss = 0.0
+    def test(self):
+        self.fpf_model.eval()
+        self.vertical_model.eval()
+        self.classification_model.eval()
+        if (self.checkpoint != None):
+            self.fpf_model.load_state_dict(torch.load(os.path.join(self.checkpoint, "fpf_model_final.pth")))
+            self.vertical_model.load_state_dict(torch.load(os.path.join(self.checkpoint, "vertical_model_final.pth")))
+            self.classification_model.load_state_dict(torch.load(os.path.join(self.checkpoint, "classification_model_final.pth")))
+            
+        train_total_loss = 0.0
         correct, total = 0, 0
         TP, FP, FN = 0, 0, 0  # True Positive, False Positive, False Negative
         
@@ -104,7 +152,7 @@ class Trainer:
         labels_list = []  # 실제 라벨
         
         with torch.no_grad():
-            for onset_img, apex_img, au, labels in self.dataloader:
+            for onset_img, apex_img, au, labels in tqdm(self.test_dataloader, desc="[Test]"):
                 # 데이터 cuda로 보내기
                 # inputs = [t.to(self.device) for t in [onset_img, apex_img, au, labels]]
                 # onset_img, apex_img, au, labels = inputs
@@ -125,7 +173,7 @@ class Trainer:
                 loss = self.criterion(outputs, labels.float())
                 
                 # 통계 계산
-                total_loss += loss.item()
+                train_total_loss += loss.item()
                 
                 # 예측 확률 수집 (ROC 계산용)
                 probs = torch.sigmoid(outputs)
@@ -150,7 +198,7 @@ class Trainer:
         fpr, tpr, thresholds = metrics.roc_curve(all_labels, all_probs)
         roc_auc = metrics.roc_auc_score(all_labels, all_probs)
         
-        avg_loss = total_loss / len(self.dataloader)
+        avg_loss = train_total_loss / len(self.dataloatest_dataloaderder)
         accuracy = correct / total
         TN = total - (TP + FP + FN)  # True Negative 계산
     
@@ -161,7 +209,7 @@ class Trainer:
     
         confusion_matrix = torch.tensor([[TN, FP], [FN, TP]])
                 
-        return total_loss/len(self.dataloader), correct/total, avg_loss, accuracy, precision, recall, f1, confusion_matrix, roc_auc, fpr, tpr
+        return train_total_loss/len(self.test_dataloader), correct/total, avg_loss, accuracy, precision, recall, f1, confusion_matrix, roc_auc, fpr, tpr
     
     def plot_confusion_matrix(confusion_matrix, title='Confusion Matrix'):
         plt.figure(figsize=(5, 5))
@@ -187,20 +235,20 @@ class Trainer:
         plt.legend(loc='lower right')
         plt.show()
 
-    def log(self):
-        for epoch, avg_train_loss, val_loss, train_acc, val_acc in self.logs:
-            print(f"Epoch {epoch} | train_Loss: {avg_train_loss:.4f} | train_Acc: {train_acc:.2%} | val_Loss: {val_loss:.4f} | val_Acc: {val_acc:.2%}")
+    # def log(self):
+    #     for epoch, avg_train_loss, val_loss, train_acc, val_acc in self.logs:
+    #         print(f"Epoch {epoch} | train_Loss: {avg_train_loss:.4f} | train_Acc: {train_acc:.2%} | val_Loss: {val_loss:.4f} | val_Acc: {val_acc:.2%}")
             
             
         
-    def test(self):
+    def eval(self, dataloader=self.val_dataloader):
         self.model.eval()
-        total_loss = 0.0
-        correct, total = 0, 0
+        val_total_loss = 0.0
+        val_correct, val_total = 0, 0
         
         with torch.no_grad():
             # for onset_img, apex_img, au, labels in self.dataloader:
-            for onset_img, apex_img, au, labels in tqdm(self.dataloader, desc="[Test]"):
+            for onset_img, apex_img, au, labels in tqdm(self.val_dataloader, desc="[Test]"):
                 onset_img, apex_img, au, labels = onset_img.to(self.device), apex_img.to(self.device), au.to(self.device), labels.to(self.device)
                 
                 fpf_features_onset = self.fpf_model(onset_img)
@@ -213,13 +261,13 @@ class Trainer:
                 outputs = self.classification_model(combined_features)
                 loss = self.criterion(outputs, labels.float())
                 
-                total_loss += loss.item()
+                train_total_loss += loss.item()
                 
                 preds = (torch.sigmoid(outputs) > 0.5).float()
                 correct += (preds == labels).all(dim=1).sum().item()
                 total += labels.size(0)
         
-        avg_loss = total_loss / len(self.dataloader)
+        avg_val_loss = val_total_loss / len(self.val_dataloader)
         accuracy = correct / total
         
         return avg_loss, accuracy 
