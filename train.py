@@ -64,6 +64,7 @@ class Trainer:
             return batch_tensor
         except:
             print("ERROR: NO img!")
+    
     def plot_confusion_matrix(self, confusion_matrix, title='Confusion Matrix'):
         plt.figure(figsize=(6, 5))
         sns.set_theme(font_scale=1.2)  # 폰트 크기 조정
@@ -75,7 +76,7 @@ class Trainer:
             cbar=True, square=True,
             linewidths=0.5, linecolor='gray',
             xticklabels=[0, 1], yticklabels=[0, 1],
-            vmin=0, vmax=200  # 예시 이미지처럼 최대값 고정
+            vmin=0, vmax=len(self.test_dataloader)  # 최대값을 데이터셋 크기로 설정
         )
 
         ax.set_xlabel("Predicted", fontsize=13, labelpad=10)
@@ -84,7 +85,7 @@ class Trainer:
 
         # tick label 크기 및 위치 조정
         ax.xaxis.set_ticklabels(['Positive', 'Negative'], fontsize=12)
-        ax.yaxis.set_ticklabels(['Positive', 'Negative'], fontsize=12, rotation=0)
+        ax.yaxis.set_ticklabels(['True', 'False'], fontsize=12, rotation=0)
 
         plt.tight_layout()
         plt.show()
