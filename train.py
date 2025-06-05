@@ -46,6 +46,8 @@ class Trainer:
         self.criterion = nn.BCEWithLogitsLoss()
         self.max_epochs = max_epochs
         
+        self.best_val_loss = float('inf')
+        
         self.checkpoint = checkpoint
         
         self.logs = []
@@ -178,6 +180,13 @@ class Trainer:
                 torch.save(self.fpf_model.state_dict(), f'./checkpoints/fpf_model_epoch_{epoch}.pth')
                 torch.save(self.vertical_model.state_dict(), f'./checkpoints/vertical_model_epoch_{epoch}.pth')
                 torch.save(self.classification_model.state_dict(), f'./checkpoints/classification_model_epoch_{epoch}.pth')
+            if (val_acc > self.best_val_acc) or (val_acc == self.best_val_acc and avg_val_loss < self.best_val_loss):
+                    # val_acc 개선 시만 저장 & reset
+                    self.best_val_acc      = val_acc
+                    self.best_val_loss   = avg_val_loss
+                    torch.save(self.fpf_model.state_dict(), f'./checkpoints/fpf_model_best.pth')
+                    torch.save(self.vertical_model.state_dict(), f'./checkpoints/vertical_model_best.pth')
+                    torch.save(self.classification_model.state_dict(), f'./checkpoints/classification_model_best.pth')
         torch.save(self.fpf_model.state_dict(), f'./checkpoints/fpf_model_final.pth')
         torch.save(self.vertical_model.state_dict(), f'./checkpoints/vertical_model_final.pth')
         torch.save(self.classification_model.state_dict(), f'./checkpoints/classification_model_final.pth')
@@ -192,9 +201,9 @@ class Trainer:
         self.vertical_model.eval()
         self.classification_model.eval()
         if (self.checkpoint != None):
-            self.fpf_model.load_state_dict(torch.load(os.path.join(self.checkpoint, "fpf_model_final.pth")))
-            self.vertical_model.load_state_dict(torch.load(os.path.join(self.checkpoint, "vertical_model_final.pth")))
-            self.classification_model.load_state_dict(torch.load(os.path.join(self.checkpoint, "classification_model_final.pth")))
+            self.fpf_model.load_state_dict(torch.load(os.path.join(self.checkpoint, "fpf_model_best.pth")))
+            self.vertical_model.load_state_dict(torch.load(os.path.join(self.checkpoint, "vertical_model_best.pth")))
+            self.classification_model.load_state_dict(torch.load(os.path.join(self.checkpoint, "classification_model_best.pth")))
             
         train_total_loss = 0.0
         correct, total = 0, 0
