@@ -4,7 +4,7 @@ import argparse
 from torchvision.transforms import transforms
 
 #Our modules
-from preprocess import preprocess
+# from preprocess import preprocess
 # from inference import inference # optional
 from train import Trainer
 from dataloader import LieDetectionDataLoader
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     reallife_dataset_root = "data\\reallife_2016"
     onset_output = "data\\onset_output"
     apex_output = "data\\apex_output"
-    AU_output = "data\\AU_output"
+    AU_output = "data\\AU_output_rev"
     label_path = "data\\label\\labels.txt"
     checkpoint_path = "checkpoints\\"
     
@@ -41,17 +41,20 @@ if __name__ == "__main__":
     if args.do_preprocess == 1:
         # 경로에 있는거 지우고 하나요? 
         # preprocess(kaggle_dataset_root, onset_output, apex_output, AU_output, "kaggle")
-        preprocess(reallife_dataset_root, onset_output, apex_output, AU_output, "reallife")
+        # preprocess(reallife_dataset_root, onset_output, apex_output, AU_output, "reallife")
+        pass
     
     #3 Feature extraction & classification
     fpf_model = resnet_18.ResNet.ResNet18_FPF_Features()
     vertical_model = resnet_18.ResNet.ResNet18_Vertical_Features()
+    # identity_model = torch.nn.Identity()
     classification_model = Classifier()
     
     if args.mode == "train_and_val":
         # 전처리에서 어떻게 할지에 따라 경로 넣는방식 바꾸면 됨.
         # ex) dataset_train, test폴더 내에 apex, au를 저장할거면 dataset_train, dataset_test만 넣으면 됨
         loader = LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path)
+        # trainer = Trainer(fpf_model, vertical_model, classification_model, \ LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path), checkpoint_path, args.epoch)
         trainer = Trainer(fpf_model, vertical_model, classification_model, \
             LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path), checkpoint_path, args.epoch)
         trainer.fit()

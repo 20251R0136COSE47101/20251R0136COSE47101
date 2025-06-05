@@ -89,4 +89,5 @@ if __name__ == "__main__":
     apex_output = "data\\apex_output"
     AU_output = "data\\AU_output"
     label_path = "data\\label\\labels.txt"
-    preprocess(reallife_dataset_root, onset_output, apex_output, AU_output, "reallife")
+    # preprocess(reallife_dataset_root, onset_output, apex_output, AU_output, "reallife")
+    extract_au(apex_output_dir, AU_output_dir)

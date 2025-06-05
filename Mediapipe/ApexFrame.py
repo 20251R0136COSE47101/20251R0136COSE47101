@@ -141,9 +141,10 @@ def find_onset_apex_frames(frames_dir, onset_output_dir, apex_output_dir):
         'motion_scores': motion_scores
     }
     """
-    idx += 1
+    global idx
     filename = f"{idx:04d}.jpg"
     print(filename)
+    idx += 1
     #frame
     onset_frame = frame_files[onset_idx]
     apex_frame = frame_files[apex_idx]

@@ -81,9 +81,11 @@ def extract_au(apex_dir, au_dir):
         if filename.lower().endswith((".jpg", ".png")):
             input_path = os.path.join(input_dir, filename)
             output_path = os.path.join(output_dir, filename.replace(".jpg", ".csv").replace(".png", ".csv"))
+            print(output_path)
             libreface.get_facial_attributes(
                 file_path=input_path,
                 output_save_path=output_path,
+                weights_download_dir="AU/weights_libreface",
                 device="cpu"  # GPU 사용 (없으면 "cpu")
             )
 
