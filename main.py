@@ -7,6 +7,7 @@ from torchvision.transforms import transforms
 # from preprocess import preprocess
 # from inference import inference # optional
 from train import Trainer
+# from train_without_cva import Trainer
 from dataloader import LieDetectionDataLoader
 from Resnet_18 import resnet_18
 from BinaryClassification.classifier import Classifier

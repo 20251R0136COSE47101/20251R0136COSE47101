@@ -38,11 +38,10 @@ class Trainer:
 
         self.optimizer = optim.Adam(
             list(self.classification_model.parameters()) +
-            list(self.fpf_model.parameters()) +
-            list(self.vertical_model.parameters()),
+            list(self.fpf_model.parameters()),
             lr=lr
         )
-        # self.optimizer = optim.Adam(self.classification_model.parameters(), lr=lr)
+        self.optimizer = optim.Adam(self.classification_model.parameters(), lr=lr)
         self.criterion = nn.BCEWithLogitsLoss()
         self.max_epochs = max_epochs
         
@@ -117,9 +116,10 @@ class Trainer:
                 fpf_features_onset = self.fpf_model(onset_img)
                 fpf_features_apex = self.fpf_model(apex_img)
                 fpf_features = fpf_features_onset + fpf_features_apex  # 두 이미지의 특징을 합침
-                fpf_features = fpf_features.view(fpf_features.size(0), -1)
-                vertical_features = self.vertical_model(self.preprocess_vertical_image(apex_img, onset_img).squeeze(0))
-                vertical_features = vertical_features.view(vertical_features.size(0), -1)
+                fpf_features = fpf_features.view(fpf_features.size(0), -1) 
+                with torch.no_grad():
+                    vertical_features = self.vertical_model(self.preprocess_vertical_image(apex_img, onset_img).squeeze(0))
+                    vertical_features = vertical_features.view(vertical_features.size(0), -1)
                 # print((vertical_features.shape, fpf_features.shape, au.shape))
                 combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
                 
@@ -155,7 +155,7 @@ class Trainer:
                     fpf_features_onset = self.fpf_model(onset_img)
                     fpf_features_apex = self.fpf_model(apex_img)
                     fpf_features = fpf_features_onset + fpf_features_apex
-                    vertical_features = self.vertical_model(self.preprocess_vertical_image(apex_img, onset_img).squeeze(0))
+                    vertical_features = self.vertical_model(apex_img)
                     fpf_features = fpf_features.view(fpf_features.size(0), -1) 
                     vertical_features = vertical_features.view(vertical_features.size(0), -1)
                     combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
@@ -216,9 +216,10 @@ class Trainer:
                 fpf_features_onset = self.fpf_model(onset_img)
                 fpf_features_apex = self.fpf_model(apex_img)
                 fpf_features = fpf_features_onset + fpf_features_apex
-                vertical_features = self.vertical_model(self.preprocess_vertical_image(apex_img, onset_img).squeeze(0))
+                vertical_features = self.vertical_model(apex_img)
                 fpf_features = fpf_features.view(fpf_features.size(0), -1) 
                 vertical_features = vertical_features.view(vertical_features.size(0), -1)
+                combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
                 
                 # 특징 결합
                 combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
