@@ -73,7 +73,7 @@ class Trainer:
             cbar=True, square=True,
             linewidths=0.5, linecolor='gray',
             xticklabels=[0, 1], yticklabels=[0, 1],
-            vmin=0, vmax=len(self.test_dataloader)  # 최대값을 데이터셋 크기로 설정
+            vmin=0, vmax=len(self.test_dataloader.dataset)  # 최대값을 데이터셋 크기로 설정
         )
 
         ax.set_xlabel("Predicted", fontsize=13, labelpad=10)
