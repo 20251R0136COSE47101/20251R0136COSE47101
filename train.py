@@ -76,13 +76,13 @@ class Trainer:
             vmin=0, vmax=len(self.test_dataloader.dataset)  # 최대값을 데이터셋 크기로 설정
         )
 
-        ax.set_xlabel("Predicted", fontsize=13, labelpad=10)
-        ax.set_ylabel("True", fontsize=13, labelpad=10)
+        ax.set_xlabel("Predicted class", fontsize=13, labelpad=10)
+        ax.set_ylabel("Actual class", fontsize=13, labelpad=10)
         ax.set_title(title, fontsize=15, pad=12)
 
         # tick label 크기 및 위치 조정
         ax.xaxis.set_ticklabels(['Positive', 'Negative'], fontsize=12)
-        ax.yaxis.set_ticklabels(['True', 'False'], fontsize=12, rotation=0)
+        ax.yaxis.set_ticklabels(['Positive', 'Negative'], fontsize=12, rotation=0)
 
         plt.tight_layout()
         plt.show()
