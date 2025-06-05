@@ -78,13 +78,13 @@ class LieDetectionDataset(Dataset):
 
 class LieDetectionDataLoader:
     def __init__(self, onset_dir, apex_dir, au_dir, label_path, \
-        batch_size=32, shuffle=True, num_workers=0, transform=None):
+        batch_size=32, shuffle=True, num_workers=4, transform=None):
         self.dataset = LieDetectionDataset(onset_dir, apex_dir, au_dir, label_path, transform=transform)
         
         self.dataset_size = len(self.dataset)
         if self.dataset_size == 0:
             raise ValueError("Dataset is empty. Please check the directories and label file.")
-        self.train_size = int(self.dataset_size * 0.8)
+        self.train_size = int(self.dataset_size * 0.6)
         self.validation_size = int(self.dataset_size * 0.1)
         self.test_size = self.dataset_size - self.train_size - self.validation_size
         
@@ -93,19 +93,25 @@ class LieDetectionDataLoader:
             self.train_ds,
             batch_size=batch_size,
             shuffle=shuffle,
-            num_workers=num_workers
+            num_workers=num_workers,
+            pin_memory=True,
+            persistent_workers=True
         )
         self.val_dataloader = DataLoader(
             self.val_ds,
             batch_size=batch_size,
             shuffle=shuffle,
-            num_workers=num_workers
+            num_workers=num_workers,
+            pin_memory=True,
+            persistent_workers=True
         )
         self.test_dataloader = DataLoader(
             self.test_ds,
             batch_size=batch_size,
             shuffle=shuffle,
-            num_workers=num_workers
+            num_workers=num_workers,
+            pin_memory=True,
+            persistent_workers=True
         )
 
     # def get_loader(self):

@@ -183,19 +183,19 @@ class ResNet(nn.Module):
       return model
 
     def ResNet18_FPF_Features():
-      #Input: (B, 3, 244, 244)
+      #Input: (B, 3, 224, 224)
       #Output: (B, 196, 14, 14)
       model = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=3, out_channels = 196)
       return model
 
     def ResNet50_FPF_Features():
-      #Input: (B, 3, 244, 244)
+      #Input: (B, 3, 224, 224)
       #Output: (B, 196, 14, 14)
       model = ResNet(Bottleneck, [3, 4, 6, 3], in_channels=3, out_channels = 196)
       return model
 
     def ResNet101_FPF_Features():
-      #Input: (B, 3, 244, 244)
+      #Input: (B, 3, 224, 224)
       #Output: (B, 196, 14, 14)
       model = ResNet(Bottleneck, [3, 4, 23, 3], in_channels=3, out_channels = 196)
       return model
@@ -222,7 +222,7 @@ class ResNet(nn.Module):
 
 
     
-def preprocess_image(image_path, image_size=(560, 560)):
+def preprocess_image(image_path, image_size=(224, 224)):
     try:
         img = Image.open(image_path).convert('RGB') 
 

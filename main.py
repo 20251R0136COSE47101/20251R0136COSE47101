@@ -4,7 +4,7 @@ import argparse
 from torchvision.transforms import transforms
 
 #Our modules
-# from preprocess import preprocess
+from preprocess import preprocess
 # from inference import inference # optional
 from train import Trainer
 from dataloader import LieDetectionDataLoader
@@ -26,21 +26,25 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     #1 input, output directory setting
-    dataset_root = "data\\dataset"
+    kaggle_dataset_root = "data\\kaggle_2025"
+    reallife_dataset_root = "data\\reallife_2016"
     onset_output = "data\\onset_output"
     apex_output = "data\\apex_output"
     AU_output = "data\\AU_output"
     label_path = "data\\label\\labels.txt"
     checkpoint_path = "checkpoints\\"
     
+
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True,max_split_size_mb:512"
+
     #2 preprocess
-    # if args.do_preprocess == 1:
-    #     # 경로에 있는거 지우고 하나요? 
-    #     preprocess(dataset_root, onset_output, apex_output, AU_output)
-    # else: do nothing
+    if args.do_preprocess == 1:
+        # 경로에 있는거 지우고 하나요? 
+        # preprocess(kaggle_dataset_root, onset_output, apex_output, AU_output, "kaggle")
+        preprocess(reallife_dataset_root, onset_output, apex_output, AU_output, "reallife")
     
     #3 Feature extraction & classification
-    fpf_model = resnet_18.ResNet.ResNet50_FPF_Features()
+    fpf_model = resnet_18.ResNet.ResNet18_FPF_Features()
     vertical_model = resnet_18.ResNet.ResNet18_Vertical_Features()
     classification_model = Classifier()
     
@@ -60,4 +64,5 @@ if __name__ == "__main__":
         trainer = Trainer(fpf_model, vertical_model, classification_model, \
             LieDetectionDataLoader(onset_output, apex_output, AU_output, label_path), checkpoint_path)
         trainer.test()
-    else: print("mode argument is wrong...\ndo type train_and_test or inference")
+    else:
+        print("mode argument is wrong...\ndo type train_and_test or inference")

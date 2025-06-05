@@ -36,13 +36,13 @@ class Trainer:
         self.val_dataloader = dataloader.val_dataloader
         self.test_dataloader = dataloader.test_dataloader
 
-        # self.optimizer = optim.Adam(
-        #     list(self.classification_model.parameters()) +
-        #     list(self.fpf_model.parameters()) +
-        #     list(self.vertical_model.parameters()),
-        #     lr=lr
-        # )
-        self.optimizer = optim.Adam(self.classification_model.parameters(), lr=lr)
+        self.optimizer = optim.Adam(
+            list(self.classification_model.parameters()) +
+            list(self.fpf_model.parameters()) +
+            list(self.vertical_model.parameters()),
+            lr=lr
+        )
+        # self.optimizer = optim.Adam(self.classification_model.parameters(), lr=lr)
         self.criterion = nn.BCEWithLogitsLoss()
         self.max_epochs = max_epochs
         
@@ -54,13 +54,10 @@ class Trainer:
         try:
             normalize_transform = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                     std=[0.229, 0.224, 0.225])
-
-            difference_tensor = img_apex_pil - img_onset_pil
-            
-            normalized_difference_tensor = normalize_transform(difference_tensor)
-
-            batch_tensor = normalized_difference_tensor.unsqueeze(0) # (C, H, W) -> (1, C, H, W)
-
+            with torch.no_grad():
+                difference_tensor = img_apex_pil - img_onset_pil
+                normalized_difference_tensor = normalize_transform(difference_tensor)
+                batch_tensor = normalized_difference_tensor.unsqueeze(0) # (C, H, W) -> (1, C, H, W)
             return batch_tensor
         except:
             print("ERROR: NO img!")
@@ -118,6 +115,9 @@ class Trainer:
                     fpf_features_apex = self.fpf_model(apex_img)
                     fpf_features = fpf_features_onset + fpf_features_apex  # 두 이미지의 특징을 합침
                     vertical_features = self.vertical_model(self.preprocess_vertical_image(apex_img, onset_img).squeeze(0))
+                fpf_features_onset = self.fpf_model(onset_img)
+                fpf_features_apex = self.fpf_model(apex_img)
+                fpf_features = fpf_features_onset + fpf_features_apex  # 두 이미지의 특징을 합침
                 fpf_features = fpf_features.view(fpf_features.size(0), -1) 
                 vertical_features = vertical_features.view(vertical_features.size(0), -1)
                 # print((vertical_features.shape, fpf_features.shape, au.shape))
