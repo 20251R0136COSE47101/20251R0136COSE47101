@@ -142,6 +142,7 @@ def find_onset_apex_frames(frames_dir, onset_output_dir, apex_output_dir):
     }
     """
     global idx
+    idx += 1
     filename = f"{idx:04d}.jpg"
     print(filename)
     idx += 1
