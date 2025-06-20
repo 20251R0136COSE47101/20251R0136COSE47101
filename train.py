@@ -21,7 +21,6 @@ class Trainer:
         checkpoint: None,
         max_epochs: int = 1,
         lr: float = 5e-4,
-        patience: int = 3,
         device: str = f"cuda"
     ):
         self.device = device if torch.cuda.is_available() else "cpu"
@@ -47,6 +46,7 @@ class Trainer:
         self.max_epochs = max_epochs
         
         self.best_val_loss = float('inf')
+        
         
         self.checkpoint = checkpoint
         

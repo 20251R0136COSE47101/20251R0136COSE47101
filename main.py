@@ -19,11 +19,13 @@ if __name__ == "__main__":
     parser.add_argument('--do_preprocess', type=int, default=0, help='1: 전처리 함, 0: 안함. 데이터셋 바뀌면 1옵션으로 하면 됨.')
     parser.add_argument('--mode', type=str, default="train_and_val", help='train_and_val/inference/test')
     parser.add_argument('--epoch', type=int, default=5, help='학습 에폭 수')
+    '''
     parser.add_argument('--batch_size', type=int, default=32, help='배치 크기')
     parser.add_argument('--lr', type=float, default=0.0001, help='학습률')
     parser.add_argument('--hidden_dim', type=int, default=256, help='은닉층 차원')
-    parser.add_argument('--Loss', type=str, default="CrossEntropyLoss", help='CrossEntropyLoss/BCELoss')
+    parser.add_argument('--Loss', type=str, default="BCEWithLogitsLoss", help='CrossEntropyLoss/BCEWithLogitsLoss')
     parser.add_argument('--path', type=str, default="binary_classifier.pth", help='dir of saved weight')
+    '''
     args = parser.parse_args()
     
     #1 input, output directory setting
