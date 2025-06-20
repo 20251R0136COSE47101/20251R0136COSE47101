@@ -6,8 +6,8 @@ from torchvision.transforms import transforms
 #Our modules
 # from preprocess import preprocess
 # from inference import inference # optional
+# from train import Trainer
 from train import Trainer
-# from train_without_cva import Trainer
 from dataloader import LieDetectionDataLoader
 from Resnet_18 import resnet_18
 from BinaryClassification.classifier import Classifier
@@ -49,7 +49,14 @@ if __name__ == "__main__":
     fpf_model = resnet_18.ResNet.ResNet18_FPF_Features()
     vertical_model = resnet_18.ResNet.ResNet18_Vertical_Features()
     # identity_model = torch.nn.Identity()
-    classification_model = Classifier()
+    AU_params = 29
+    CVA_params = 512 * 14 * 14
+    FPF_params = 196 * 14 * 14
+    classification_model = Classifier(combined_features=FPF_params+AU_params)
+    # AU + CVA + FPF = 708*14*14 + 29
+    # AU = 29
+    # CVA = 512 * 14 * 14
+    # FPF = 196 * 14 * 14
     
     if args.mode == "train_and_val":
         # 전처리에서 어떻게 할지에 따라 경로 넣는방식 바꾸면 됨.

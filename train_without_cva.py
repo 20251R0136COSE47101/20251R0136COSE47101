@@ -35,6 +35,7 @@ class Trainer:
         self.train_dataloader = dataloader.train_dataloader
         self.val_dataloader = dataloader.val_dataloader
         self.test_dataloader = dataloader.test_dataloader
+        self.best_val_acc = 0
 
         self.optimizer = optim.Adam(
             list(self.classification_model.parameters()) +
@@ -121,7 +122,8 @@ class Trainer:
                     vertical_features = self.vertical_model(self.preprocess_vertical_image(apex_img, onset_img).squeeze(0))
                     vertical_features = vertical_features.view(vertical_features.size(0), -1)
                 # print((vertical_features.shape, fpf_features.shape, au.shape))
-                combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
+                # combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
+                combined_features = fpf_features
                 
                 outputs = self.classification_model(combined_features)
                 
@@ -155,12 +157,13 @@ class Trainer:
                     fpf_features_onset = self.fpf_model(onset_img)
                     fpf_features_apex = self.fpf_model(apex_img)
                     fpf_features = fpf_features_onset + fpf_features_apex
-                    vertical_features = self.vertical_model(apex_img)
+                    vertical_features = self.vertical_model(self.preprocess_vertical_image(apex_img, onset_img).squeeze(0))
                     fpf_features = fpf_features.view(fpf_features.size(0), -1) 
                     vertical_features = vertical_features.view(vertical_features.size(0), -1)
+                    '''
                     combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
-                    
-                    
+                    '''
+                    combined_features = fpf_features
                     outputs = self.classification_model(combined_features)
                     loss = self.criterion(outputs, labels.float())
                     val_total_loss += loss.item()
@@ -174,10 +177,17 @@ class Trainer:
             val_acc = val_correct / val_total
             print(f"Epoch {epoch} ▶ val_loss: {avg_val_loss:.4f}, val_acc: {val_acc:.4f}")
 
-            if (epoch%4==0): 
+            if epoch % 4 == 0: 
                 torch.save(self.fpf_model.state_dict(), f'./checkpoints/fpf_model_epoch_{epoch}.pth')
                 torch.save(self.vertical_model.state_dict(), f'./checkpoints/vertical_model_epoch_{epoch}.pth')
                 torch.save(self.classification_model.state_dict(), f'./checkpoints/classification_model_epoch_{epoch}.pth')
+            if (val_acc > self.best_val_acc) or (val_acc == self.best_val_acc and avg_val_loss < self.best_val_loss):
+                # val_acc 개선 시만 저장 & reset
+                self.best_val_acc      = val_acc
+                self.best_val_loss   = avg_val_loss
+                torch.save(self.fpf_model.state_dict(), f'./checkpoints/fpf_model_best.pth')
+                torch.save(self.vertical_model.state_dict(), f'./checkpoints/vertical_model_best.pth')
+                torch.save(self.classification_model.state_dict(), f'./checkpoints/classification_model_best.pth')
         torch.save(self.fpf_model.state_dict(), f'./checkpoints/fpf_model_final.pth')
         torch.save(self.vertical_model.state_dict(), f'./checkpoints/vertical_model_final.pth')
         torch.save(self.classification_model.state_dict(), f'./checkpoints/classification_model_final.pth')
@@ -216,13 +226,11 @@ class Trainer:
                 fpf_features_onset = self.fpf_model(onset_img)
                 fpf_features_apex = self.fpf_model(apex_img)
                 fpf_features = fpf_features_onset + fpf_features_apex
-                vertical_features = self.vertical_model(apex_img)
+                vertical_features = self.vertical_model(self.preprocess_vertical_image(apex_img, onset_img).squeeze(0))
                 fpf_features = fpf_features.view(fpf_features.size(0), -1) 
                 vertical_features = vertical_features.view(vertical_features.size(0), -1)
-                combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
-                
-                # 특징 결합
-                combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
+                # combined_features = torch.cat([fpf_features, vertical_features, au], dim=1)
+                combined_features = fpf_features
                 
                 # 예측
                 outputs = self.classification_model(combined_features)
